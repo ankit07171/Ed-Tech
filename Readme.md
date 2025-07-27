@@ -22,7 +22,9 @@ It helps students and teachers connect, learn, and grow through interactive quiz
 |------------------|----------------------|
 | React + Vite     | Node.js + Express    |
 | Tailwind CSS     | MongoDB (Mongoose)   |
-| React Router     | Socket.IO            |
+| Chartjs          | Socket.IO            |
+|                  | Nodemailer           |
+|                  | WebRTC               |
     
 
 ---
