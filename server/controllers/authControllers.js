@@ -1,7 +1,28 @@
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
-// import { sendOTPEmail } from "../utils/sendMail.js";
+import sendOTPEmail  from "../utils/sendMail.js";
+
+const otpStore = new Map(); // Temporary in-memory OTP storage
+
+// Send OTP Controller
+export const sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    const otp = await sendOTPEmail(email);
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+
+    otpStore.set(email, { otp, expiresAt });
+
+    res.status(200).json({ message: "OTP sent successfully" });
+  } catch (error) {
+    console.error("Error sending OTP:", error.message);
+    res.status(500).json({ error: "Failed to send OTP" });
+  }
+};
 
 const maleAvatars = [
   "https://api.dicebear.com/7.x/adventurer/svg?seed=Leo",
@@ -29,6 +50,7 @@ const femaleAvatars = [
   "https://api.dicebear.com/7.x/adventurer/svg?seed=Rose",
 ];
 
+// Signup Controller
 export const signup = async (req, res) => {
   try {
     const {
@@ -38,12 +60,34 @@ export const signup = async (req, res) => {
       confirmPassword,
       gender,
       contact,
-      role} = req.body;
-    const user = await User.findOne({ email });
-    
-    if (user) {return res.status(400).json({ error: "Email already registered" });} 
+      role,
+      userOtp,
+    } = req.body;
 
-    const randomAvatar = gender === "male"
+    if (!otpStore.has(email)) {
+      return res.status(400).json({ error: "OTP not requested or expired" });
+    }
+
+    const { otp, expiresAt } = otpStore.get(email);
+
+    if (Date.now() > expiresAt) {
+      otpStore.delete(email);
+      return res.status(400).json({ error: "OTP expired" });
+    }
+
+    if (parseInt(userOtp) !== otp) {
+      return res.status(400).json({ error: "Invalid OTP" });
+    }
+
+    otpStore.delete(email); // cleanup used OTP
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
+    const randomAvatar =
+      gender === "male"
         ? maleAvatars[Math.floor(Math.random() * maleAvatars.length)]
         : femaleAvatars[Math.floor(Math.random() * femaleAvatars.length)];
 
@@ -61,10 +105,10 @@ export const signup = async (req, res) => {
     });
 
     await newUser.save();
-    // generateToken(newUser._id, res);
+    generateToken(newUser._id, res);
 
-    return res.status(201).json({
-      msg: "User verified successfully",
+    res.status(201).json({
+      msg: "Signup successful",
       user: {
         _id: newUser._id,
         fullName: newUser.fullName,
@@ -73,26 +117,26 @@ export const signup = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Signup error:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.error("Signup error:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
+// Login Controller
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "User not found" });
 
-    if (!user) { return res.status(400).json({ error: "User not found" });}
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-    const isMatch = await bcrypt.compare(password, user.password);  
+    generateToken(user._id, res);
 
-    if (!isMatch) {return res.status(400).json({ error: "Invalid credentials" });} 
-
-    generateToken(user, res);
-
-    return res.status(200).json({
-      msg: "User verified successfully",
+    res.status(200).json({
+      msg: "Login successful",
       user: {
         _id: user._id,
         fullName: user.fullName,
@@ -101,38 +145,44 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+// Logout Controller
 export const logout = (req, res) => {
   try {
     res.cookie("jwt", "", { maxAge: 0 });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    console.log("Error in logout controller", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Logout error:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
- 
+
+// Get All Teachers
 export const getTeachers = async (req, res) => {
   try {
-  // const query = role ? { role } : { role: "teacher" };
-  const users = await User.find({role:"teacher"}).select("fullName email profilePic role");
-
+    const users = await User.find({ role: "teacher" }).select(
+      "fullName email profilePic role"
+    );
     res.status(200).json(users);
   } catch (error) {
-    console.error("Error fetching users:", error.message);
+    console.error("Error fetching teachers:", error.message);
     res.status(500).json({ error: "Failed to fetch users" });
   }
 };
+
+// Get All Students
 export const getStudents = async (req, res) => {
-  try {   
-    const users = await User.find({role:"student"}).select("fullName email profilePic role");
+  try {
+    const users = await User.find({ role: "student" }).select(
+      "fullName email profilePic role"
+    );
     res.status(200).json(users);
   } catch (error) {
-    console.error("Error fetching users:", error.message);
+    console.error("Error fetching students:", error.message);
     res.status(500).json({ error: "Failed to fetch users" });
   }
 };

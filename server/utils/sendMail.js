@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 
-export const sendOTPEmail = async (email) => {
-
-    const otp = Math.floor(100000 + Math.random() * 900000); // returns 6-digit number
+const sendOTPEmail = async (email) => {
+  
+  const otpSent = Math.floor(100000 + Math.random() * 900000); // returns 6-digit number
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -21,7 +21,7 @@ export const sendOTPEmail = async (email) => {
         <p>Hello,</p>
         <p>Use the following OTP to complete your registration on <strong>QA Skills</strong>:</p>
         <div style="font-size: 24px; font-weight: bold; margin: 20px 0; color: #2e7d32;">
-          ${otp}
+          ${otpSent}
         </div>
         <p>This OTP is valid for <strong>5 minutes</strong>.</p>
         <p>If you did not request this, you can ignore this email.</p>
@@ -32,5 +32,6 @@ export const sendOTPEmail = async (email) => {
   };
 
   await transporter.sendMail(mailOptions);
-  return otp;
+  return otpSent;
 };
+ export default sendOTPEmail;

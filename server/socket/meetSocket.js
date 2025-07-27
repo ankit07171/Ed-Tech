@@ -3,10 +3,11 @@ const roomUsers = {}; // roomId => [{ socketId, role }]
 export const setupMeetSocket = (io) => {
   io.on("connection", (socket) => {
     socket.on("join-room", ({ code: roomId, userId, role }) => {
+      
       socket.join(roomId);
 
       if (!roomUsers[roomId]) roomUsers[roomId] = [];
-      roomUsers[roomId].push({ socketId: socket.id, role });
+      roomUsers[roomId].push({ socketId: socket.id, role, userId });
 
       // Notify teacher only when a student joins
       const teacher = roomUsers[roomId].find((u) => u.role === "teacher");

@@ -33,6 +33,7 @@ import TeacherQuizDashboard from "./pages/teacher/Quiz.jsx";
 import AllQuizzes from "./pages/teacher/AllQuizes.jsx";
 import TeacherMeet from "./pages/teacher/CreateMeet.jsx"
 import Logout from "./pages/auth/Logout.jsx";
+import Base from "./pages/base.jsx";
 
 export default function App() {
   return (
@@ -40,9 +41,9 @@ export default function App() {
       <Routes>
         {/* Auth */}
         <Route element={<AuthLayout />}>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Base />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signin" element={<Signin />} />
+          <Route path="/signup" element={<Signin />} />
           <Route path="/student/logout" element={<Logout />} />
           <Route path="/teacher/logout" element={<Logout />} />
         </Route>

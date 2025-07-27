@@ -6,14 +6,14 @@ import axios from "axios";
 export default function TeacherMeet() {
   const [code, setCode] = useState(localStorage.getItem("meetCode") || "");
   const [started, setStarted] = useState(localStorage.getItem("started") === "true");
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStreams, setRemoteStreams] = useState({});
+  const [localStream, setLocalStream] = useState(null);//teacher
+  const [remoteStreams, setRemoteStreams] = useState({});//student
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
 
   const peerConnections = useRef({});
-  const originalVideoTrack = useRef(null);
+  const originalVideoTrack = useRef(null);//after scrnn share redirect to video
 
   useEffect(() => {
     if (started && code) {
@@ -48,7 +48,8 @@ export default function TeacherMeet() {
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
         pc.onicecandidate = (e) => {
-          if (e.candidate) socket.emit("signal", { to: userId, signal: { type: "ice", candidate: e.candidate } });
+          if (e.candidate) socket.emit("signal", 
+            { to: userId, signal: { type: "ice", candidate: e.candidate } });
         };
 
         pc.ontrack = (e) => {
