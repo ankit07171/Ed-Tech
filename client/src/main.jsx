@@ -1,16 +1,19 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-// import { ThemeProvider } from './context/ThemeContext';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './App.jsx';
+import { ThemeProvider, useTheme } from './context/ThemeContext.jsx';
+
+function ThemedApp() {
+  const { isDark } = useTheme();
+  return (
+    <div className={isDark ? 'dark' : ''}>
+      <App />
+    </div>
+  );
+}
 
 createRoot(document.getElementById('root')).render(
-   <>
-   <div className='w-full min-h-screen'>
-      {/* <ThemeProvider> */}
-    <App/>
-
-      {/* </ThemeProvider> */}
-   </div>
-   </>
-)
+  <ThemeProvider>
+    <ThemedApp />
+  </ThemeProvider>
+);

@@ -105,7 +105,7 @@ export const signup = async (req, res) => {
     });
 
     await newUser.save();
-    generateToken(newUser._id, res);
+    generateToken(newUser, res);
 
     res.status(201).json({
       msg: "Signup successful",
@@ -133,7 +133,7 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-    generateToken(user._id, res);
+    generateToken(user, res);
 
     res.status(200).json({
       msg: "Login successful",
@@ -151,15 +151,28 @@ export const login = async (req, res) => {
 };
 
 // Logout Controller
+// Logout Controller
 export const logout = (req, res) => {
   try {
-    res.cookie("jwt", "", { maxAge: 0 });
+    res.clearCookie("jwt", {
+      httpOnly: false,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "Strict",
+    });
+
+    res.clearCookie("userRole", {
+      httpOnly: false,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "Strict",
+    });
+
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // Get All Teachers
 export const getTeachers = async (req, res) => {

@@ -7,8 +7,8 @@ const StudentLayout = () => {
   return (
     <>
       <StudentHeader />
-      <div className="pt-16 min-h-screen px-4">
-        <Outlet />
+      <div className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen pt-16 px-4">
+   <Outlet />
       </div>
       <Footer/>
     </>

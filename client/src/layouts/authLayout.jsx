@@ -6,7 +6,8 @@ const AuthLayout = () => {
   return (
     <>
       <AuthHeader />
-      <div className="pt-16 min-h-screen ">
+      <div className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
+
         <Outlet />
       </div>
       <Footer/>

@@ -34,40 +34,47 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="pt-20 px-4 max-w-7xl mx-auto">
+    <div className="pt-20 px-4 max-w-7xl mx-auto text-gray-800 dark:text-gray-100">
       {/* Slider Section */}
-      <div className="w-full h-64 md:h-[400px] overflow-hidden rounded-xl shadow-lg mb-10">
-        <img
-          src={sliderImages[currentIndex]}
-          alt="Slider"
-          className="w-full h-full object-cover transition-all duration-500"
-        />
-      </div>
+      <div className="w-full h-64 md:h-[400px] overflow-hidden rounded-xl shadow-lg mb-10 bg-white dark:bg-gray-900 flex items-center justify-center">
+  <img
+    src={sliderImages[currentIndex]}
+    alt="Slider"
+    className="w-full h-full object-contain transition-all rounded duration-500"
+  />
+</div>
+
 
       {/* Teachers Section */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-purple-700 text-center">Meet Our Teachers</h2>
-        
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg">
+        <h2 className="text-2xl font-bold mb-6 text-purple-700 dark:text-purple-300 text-center">
+          Meet Our Teachers
+        </h2>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {teachers.map((teacher) => (
             <div
               key={teacher._id}
-              className="bg-gray-50 rounded-lg shadow-md p-4 flex flex-col items-center text-center hover:shadow-xl transition duration-300"
+              className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center text-center hover:shadow-xl transition duration-300"
             >
               <img
                 src={teacher.profilePic}
                 alt={teacher.fullName}
                 className="w-20 h-20 rounded-full object-cover mb-3 border-2 border-purple-500"
               />
-              <h3 className="text-lg font-semibold text-gray-800">{teacher.fullName}</h3>
-              <p className="text-sm text-gray-600 mb-1">{teacher.email}</p>
-              <p className="text-sm text-purple-600 font-medium">Subject: Physics</p> {/* Example profession */}
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                {teacher.fullName}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{teacher.email}</p>
+              <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                Subject: Physics
+              </p>
             </div>
           ))}
         </div>
 
         {teachers.length === 0 && (
-          <p className="text-center text-gray-500 mt-6">No teachers found.</p>
+          <p className="text-center text-gray-500 dark:text-gray-400 mt-6">No teachers found.</p>
         )}
       </div>
     </div>

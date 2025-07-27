@@ -1,6 +1,9 @@
-@import "tailwindcss";
+/* @import "tailwindcss"; */
 /* styles.css */
-/* index.css */
+/* index.css */ 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 .input {
   width: 100%;
   padding: 12px 40px; /* Add padding for icon space */
