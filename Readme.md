@@ -40,3 +40,5 @@ PORT = 7171
 MONGODB_URI = /........./
 JWT_SECRET  = /............/
 NODE_ENV =  /............/
+EMAIL_USER =  /............/
+EMAIL_PASSWORD =  /............/
