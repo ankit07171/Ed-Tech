@@ -2,11 +2,11 @@
   "name": "server",
   "version": "1.0.0",
   "main": "index.js",
-"scripts": {
-"server": "nodemon server/server.js",
-"start": "node server/server.js",
-"build": "npm install && npm install --prefix client && npm run build --prefix client"
-},
+  "scripts": {
+    "server": "nodemon server/server.js",
+    "start": "node server/server.js",
+    "build": "npm install && npm install --prefix client && npm run build --prefix client"
+  },
   "type": "module",
   "author": "",
   "license": "ISC",
@@ -22,7 +22,11 @@
     "multer": "^2.0.1",
     "nanoid": "^5.1.5",
     "nodemailer": "^7.0.5",
+    "nodemon": "^3.1.10",
     "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.4"
   }
 }
