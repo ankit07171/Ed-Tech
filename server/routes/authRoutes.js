@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/login",login)
 router.post("/logout",protect,logout)
 router.post("/signup",signup) 
-router.post("/send-otp",protect, sendOtp);
+router.post("/send-otp", sendOtp);
 
 router.get("/",getTeachers)
 router.get("/getStudent",getStudents)
