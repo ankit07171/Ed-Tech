@@ -40,7 +40,7 @@ export default function Header() {
               {link.name}
             </Link>
           ))}
-          {/* Theme Toggle Button */}
+          
           <button
             onClick={toggleTheme}
             className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded transition text-black dark:text-white"
