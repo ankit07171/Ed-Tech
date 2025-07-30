@@ -46,13 +46,22 @@ export default function Signin() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!fullName || !email || !gender || !contact)
       return toast.error("Please fill all fields");
-    if (!emailRegex.test(email)) return toast.error("Invalid email format");
-    if (contact.length !== 10 || !/^\d{10}$/.test(contact))
-      return toast.error("Contact must be a 10-digit number");
+    const trimmedEmail = email.trim();
+    const trimmedContact = contact.trim().replace(/^0+/, ""); // remove leading zeros
 
+    if (!emailRegex.test(trimmedEmail))
+      return toast.error("Invalid email format");
+
+    if (!/^\d+$/.test(trimmedContact) || trimmedContact.length !== 10) {
+      return toast.error("Contact must be a 10-digit number");
+    }
+
+setEmail(trimmedEmail);
+setContact(trimmedContact);
     setLoadingOtp(true);
     try {
-      await axios.post("/api/auth/send-otp", { email });
+      await axios.post("/api/auth/send-otp", { email: trimmedEmail });
+
       toast.success("OTP sent to email");
       setTimeLeft(300);
       setStep(2);
@@ -64,24 +73,30 @@ export default function Signin() {
   };
 
   const handleSubmit = async (e) => {
+    const trimmedEmail = email.trim();
+const trimmedContact = contact.trim().replace(/^0+/, "");
+
     e.preventDefault();
     if (!otp) return toast.error("Please enter the OTP");
-    if (password !== confirmPassword) return toast.error("Passwords do not match");
-    if (password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (password !== confirmPassword)
+      return toast.error("Passwords do not match");
+    if (password.length < 6)
+      return toast.error("Password must be at least 6 characters");
     if (timeLeft <= 0) return toast.error("OTP expired");
 
     setLoadingSignup(true);
     try {
       await axios.post("/api/auth/signup", {
         fullName,
-        email,
+        email: trimmedEmail,
         gender,
-        contact,
+        contact: trimmedContact,
         password,
         confirmPassword,
         role,
         userOtp: otp,
       });
+
       toast.success("Signup successful!");
       navigate("/login");
     } catch (err) {
@@ -126,10 +141,15 @@ export default function Signin() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-white">Gender</label>
+                <label className="block text-sm font-medium mb-1 dark:text-white">
+                  Gender
+                </label>
                 <div className="flex gap-4">
                   {["male", "female"].map((g) => (
-                    <label key={g} className="flex items-center gap-1 dark:text-gray-300">
+                    <label
+                      key={g}
+                      className="flex items-center gap-1 dark:text-gray-300"
+                    >
                       <input
                         type="radio"
                         name="gender"
@@ -150,7 +170,10 @@ export default function Signin() {
                   type="text"
                   placeholder="Contact Number"
                   value={contact}
-                  onChange={(e) => setContact(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^\d*$/.test(val)) setContact(val); // only allow digits
+                  }}
                   required
                   className="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                 />
@@ -179,7 +202,9 @@ export default function Signin() {
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-white">Enter OTP</label>
+                <label className="block text-sm font-medium mb-1 dark:text-white">
+                  Enter OTP
+                </label>
                 <input
                   type="text"
                   placeholder="6-digit OTP"
@@ -191,7 +216,10 @@ export default function Signin() {
                 <p className="text-sm mt-1 text-gray-500">
                   {timeLeft > 0 ? (
                     <>
-                      Time left: <span className="font-semibold">{formatTime(timeLeft)}</span>
+                      Time left:{" "}
+                      <span className="font-semibold">
+                        {formatTime(timeLeft)}
+                      </span>
                     </>
                   ) : (
                     <button
@@ -243,10 +271,15 @@ export default function Signin() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-white">Role</label>
+                <label className="block text-sm font-medium mb-1 dark:text-white">
+                  Role
+                </label>
                 <div className="flex gap-4">
                   {["student", "teacher"].map((r) => (
-                    <label key={r} className="flex items-center gap-1 dark:text-gray-300">
+                    <label
+                      key={r}
+                      className="flex items-center gap-1 dark:text-gray-300"
+                    >
                       <input
                         type="radio"
                         name="role"
