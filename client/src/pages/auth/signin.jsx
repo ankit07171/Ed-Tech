@@ -276,7 +276,6 @@
 //     </div>
 //   );
 // }
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -384,12 +383,13 @@ export default function Signin() {
         </h2>
 
         {step === 1 ? (
-          <form onSubmit={handleSendOtp} className="space-y-4">
+          <form onSubmit={handleSendOtp} autoComplete="off" className="space-y-4">
             <div className="relative">
               <FaUser className="absolute left-3 top-3 text-gray-400" />
               <input
                 name="fullName"
                 placeholder="Full Name"
+                autoComplete="off"
                 onChange={handleChange}
                 required
                 className="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
@@ -419,15 +419,16 @@ export default function Signin() {
 
             <div className="relative">
               <FaPhone className="absolute left-3 top-3 text-gray-400 scale-x-[-1]" />
-             <input
-  name="contact"
-  placeholder="Contact"
-  onChange={handleChange}
-  required
-  autoComplete="tel"
-  className="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-/>
-
+              <input
+                name="contact"
+                placeholder="Contact"
+                autoComplete="off"
+                onChange={handleChange}
+                required
+                readOnly
+                onFocus={(e) => e.target.removeAttribute("readOnly")}
+                className="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              />
             </div>
 
             <div className="relative">
@@ -435,6 +436,7 @@ export default function Signin() {
               <input
                 name="email"
                 placeholder="Email"
+                autoComplete="off"
                 onChange={handleChange}
                 required
                 className="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
@@ -450,7 +452,7 @@ export default function Signin() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Enter OTP
@@ -458,28 +460,12 @@ export default function Signin() {
               <input
                 type="text"
                 placeholder="6-digit OTP"
+                autoComplete="off"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 required
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
               />
-              <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">
-                {timeLeft > 0 ? (
-                  <>
-                    Time left:{" "}
-                    <span className="font-semibold">{formatTime(timeLeft)}</span>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={loadingOtp}
-                    onClick={handleSendOtp}
-                    className="text-purple-600 dark:text-purple-400 font-medium hover:underline"
-                  >
-                    {loadingOtp ? "Resending..." : "Resend OTP"}
-                  </button>
-                )}
-              </p>
             </div>
 
             <div className="relative">
@@ -488,8 +474,11 @@ export default function Signin() {
                 name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
+                autoComplete="off"
                 onChange={handleChange}
                 required
+                readOnly
+                onFocus={(e) => e.target.removeAttribute("readOnly")}
                 className="w-full pl-10 pr-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
               />
               <span
@@ -503,15 +492,16 @@ export default function Signin() {
             <div className="relative">
               <FaLock className="absolute left-3 top-3 text-gray-400" />
               <input
-  name="confirmPassword"
-  type={showConfirmPassword ? "text" : "password"}
-  placeholder="Confirm Password"
-  onChange={handleChange}
-  required
-  autoComplete="new-password"
-  className="w-full pl-10 pr-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-/>
-
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm Password"
+                autoComplete="off"
+                onChange={handleChange}
+                required
+                readOnly
+                onFocus={(e) => e.target.removeAttribute("readOnly")}
+                className="w-full pl-10 pr-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              />
               <span
                 className="absolute right-3 top-3 text-gray-500 dark:text-gray-300 cursor-pointer"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
