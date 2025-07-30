@@ -25,7 +25,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 app.use(
 cors({
-    origin: "http://localhost:1845",  
+    origin: ["http://localhost:1845","http://localhost:7171","https://ed-tech-44mp.onrender.com"],  
     credentials: true,                
   })
 );
@@ -48,7 +48,7 @@ app.get("/{*splat}", (req, res) => {
 });
 
 const io = new Server(server, 
-  { cors: { origin: "http://localhost:1845" },
+  { cors: { origin: ["http://localhost:1845","http://localhost:7171","https://ed-tech-44mp.onrender.com"] },
   credentials:true });
 setupMeetSocket(io);
 
