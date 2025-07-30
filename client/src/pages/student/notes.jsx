@@ -20,7 +20,7 @@ export default function StudentNotesView() {
           <h3 className="font-semibold text-lg">{note.title}</h3>
           <p className="text-sm text-gray-500">By: {note.uploadedBy?.fullName}</p>
           <a
-            href={`http://localhost:7171/${note.filePath}`}
+            href={`https://ed-tech-44mp.onrender.com${note.filePath}`}
             download
             className="text-blue-600 underline mt-1 block"
           >

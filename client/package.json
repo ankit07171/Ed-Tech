@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "proxy": "http://localhost:7171",
+  "proxy": "https://ed-tech-44mp.onrender.com",
   "dependencies": {
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
