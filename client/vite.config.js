@@ -6,8 +6,9 @@ export default defineConfig({
   server: {
     port: 1845,
     proxy: {
-      '/api': "https://ed-tech-44mp.onrender.com",
+      '/api':"https://ed-tech-44mp.onrender.com" ,
     },
   },
 });
 // http://localhost:7171
+// "https://ed-tech-44mp.onrender.com"

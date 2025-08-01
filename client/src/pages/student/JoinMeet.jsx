@@ -24,8 +24,12 @@ export default function StudentJoinMeet() {
     }
   }, [remoteStream]);
 
-  // Register signal listener only once
   useEffect(() => {
+    socket.on("teacher-left", () => {
+      alert("Teacher has ended the meet.");
+      handleLeave();
+    });
+
     socket.on("signal", async ({ from, signal }) => {
       console.log("[Student] Received signal from", from);
 
@@ -51,7 +55,10 @@ export default function StudentJoinMeet() {
       }
     });
 
-    return () => socket.off("signal");
+    return () => {
+      socket.off("signal");
+      socket.off("teacher-left");
+    };
   }, []);
 
   const joinMeet = async (meetCode) => {
@@ -85,7 +92,6 @@ export default function StudentJoinMeet() {
           }
         };
 
-        // Handle any queued ICE candidates
         iceQueue.current.forEach(async (c) => {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(c));
@@ -118,7 +124,7 @@ export default function StudentJoinMeet() {
   const toggleMic = () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
+      audioTrack.enabled = !micOn;
       setMicOn(audioTrack.enabled);
     }
   };

@@ -28,11 +28,13 @@ export default function TeacherMeet() {
     socket.on("user-joined", handleUserJoined);
     socket.on("signal", handleSignal);
     socket.on("user-left", handleUserLeft);
+     socket.on("user-message", handleUserMessage);
 
     return () => {
       socket.off("user-joined", handleUserJoined);
       socket.off("signal", handleSignal);
       socket.off("user-left", handleUserLeft);
+    socket.off("user-message", handleUserMessage);
     };
   }, [stream]);
 
@@ -193,6 +195,16 @@ export default function TeacherMeet() {
     });
     setSharing(false);
   };
+
+  const handleUserMessage = ({ type, name }) => {
+  if (type === "join") {
+    setLeaveMsg(`👋 ${name} joined the meet`);
+  } else if (type === "leave") {
+    setLeaveMsg(`👋 ${name} left the meet`);
+  }
+  setTimeout(() => setLeaveMsg(""), 3000);
+};
+
 
   const leaveMeet = () => {
     socket.emit("leave-room", { code });
