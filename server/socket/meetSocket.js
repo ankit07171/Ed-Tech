@@ -1,33 +1,27 @@
-const roomUsers = {}; // roomId => [{ socketId, role }]
+const roomUsers = {};
 
 export const setupMeetSocket = (io) => {
   io.on("connection", (socket) => {
-    socket.on("join-room", ({ code: roomId, userId, role }) => {
-      
-      socket.join(roomId);
+    socket.on("join-room", ({ code, role,name }) => {
+      socket.join(code);
+      if (!roomUsers[code]) roomUsers[code] = [];
+      roomUsers[code].push({ socketId: socket.id, role ,name});
 
-      if (!roomUsers[roomId]) roomUsers[roomId] = [];
-      roomUsers[roomId].push({ socketId: socket.id, role, userId });
-
-      // Notify teacher only when a student joins
-      const teacher = roomUsers[roomId].find((u) => u.role === "teacher");
+      // Notify teacher when student joins
+      const teacher = roomUsers[code].find(u => u.role === "teacher");
       if (role === "student" && teacher) {
-        io.to(teacher.socketId).emit("user-joined", { userId: socket.id });
+        io.to(teacher.socketId).emit("user-joined", { userId: socket.id ,name});
       }
 
-      // Signal passing
-      socket.on("signal", (data) => {
-        io.to(data.to).emit("signal", {
-          from: socket.id,
-          signal: data.signal,
-        });
+      // Handle signaling
+      socket.on("signal", ({ to, signal }) => {
+        io.to(to).emit("signal", { from: socket.id, signal });
       });
 
+      // Disconnect
       socket.on("disconnect", () => {
-        if (roomUsers[roomId]) {
-          roomUsers[roomId] = roomUsers[roomId].filter(u => u.socketId !== socket.id);
-          socket.broadcast.to(roomId).emit("user-disconnected", socket.id);
-        }
+        roomUsers[code] = roomUsers[code]?.filter(u => u.socketId !== socket.id);
+        socket.broadcast.to(code).emit("user-disconnected", socket.id);
       });
     });
   });

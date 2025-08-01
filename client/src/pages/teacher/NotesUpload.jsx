@@ -38,36 +38,35 @@ export default function TeacherNotesManager() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 pt-20">
-      <h2 className="text-2xl font-bold text-purple-700 mb-6">All Uploaded Notes</h2>
+    <div className="max-w-4xl mx-auto p-6 pt-20 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+      <h2 className="text-2xl font-bold text-purple-700 dark:text-purple-300 mb-6">All Uploaded Notes</h2>
 
       {loading ? (
-        <p className="text-center text-gray-500">Loading...</p>
+        <p className="text-center text-gray-500 dark:text-gray-300">Loading...</p>
       ) : notes.length === 0 ? (
-        <p className="text-center text-gray-600">No notes found</p>
+        <p className="text-center text-gray-600 dark:text-gray-400">No notes found</p>
       ) : (
         <ul className="space-y-4">
           {notes.map((note) => (
             <li
               key={note._id}
-              className="p-4 border rounded-md bg-white shadow flex justify-between items-center"
+              className="p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow flex justify-between items-center"
             >
               <div>
-                <p className="font-semibold text-gray-800">{note.title}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-semibold text-gray-800 dark:text-gray-100">{note.title}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Uploaded by: {note.uploadedBy?.fullName || "Unknown"}
                 </p>
                 <a
                   href={`/${note.filePath}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm"
+                  className="text-blue-600 dark:text-blue-400 underline text-sm"
                 >
                   View File
                 </a>
               </div>
 
-              {/* Only show delete button if logged-in teacher uploaded this note */}
               {note.uploadedBy?._id === Cookies.get("userId") && (
                 <button
                   onClick={() => handleDelete(note._id)}

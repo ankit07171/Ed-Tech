@@ -10,8 +10,7 @@ export default function ProtectedRoute({ expectedRole, children }) {
    
  
   const token = Cookies.get("jwt");
-  const role = Cookies.get("userRole");
- console.log(token,role);
+  const role = Cookies.get("userRole"); 
  
   // if (!token || !role) return <Navigate to="/login" replace />;
   if (role !== expectedRole) return <Navigate to="/login" replace />;

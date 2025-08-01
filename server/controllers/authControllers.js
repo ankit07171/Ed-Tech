@@ -65,7 +65,7 @@ export const signup = async (req, res) => {
     } = req.body;
 
     if (!otpStore.has(email)) {
-      return res.status(400).json({ error: "OTP not requested or expired" });
+      return res.status(400).json({ error: "Email already Logged in. Try another" });
     }
 
     const { otp, expiresAt } = otpStore.get(email);

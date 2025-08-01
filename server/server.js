@@ -47,9 +47,13 @@ app.get("/{*splat}", (req, res) => {
   res.sendFile(path.join(__dirname,"client","dist","index.html"));
 });
 
-const io = new Server(server, 
-  { cors: { origin: ["http://localhost:1845","http://localhost:7171","https://ed-tech-44mp.onrender.com"] },
-  credentials:true });
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:1845", "http://localhost:7171", "https://ed-tech-44mp.onrender.com"],
+    credentials: true,
+  }
+});
+
 setupMeetSocket(io);
 
 const startServer = async () => {

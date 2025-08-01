@@ -13,6 +13,9 @@ export default function Logout() {
     try {
       await axios.post("/api/auth/logout", {}, { withCredentials: true });
       toast.success("Logged out successfully");
+      console.log('Logged Out');
+      
+      localStorage.clear();
       navigate("/");
     } catch (err) {
       console.error("Logout failed:", err);

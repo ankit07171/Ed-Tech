@@ -8,11 +8,50 @@ export default function StudentJoinMeet() {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [micOn, setMicOn] = useState(true);
+  const [name, setName] = useState(localStorage.getItem("userName") || "Student");
 
-  const peerConnections = useRef({});
+  const pcRef = useRef(null);
+  const iceQueue = useRef([]);
+  const remoteVideoRef = useRef(null);
 
   useEffect(() => {
     if (joined && code) joinMeet(code);
+  }, []);
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  // Register signal listener only once
+  useEffect(() => {
+    socket.on("signal", async ({ from, signal }) => {
+      console.log("[Student] Received signal from", from);
+
+      if (!pcRef.current) {
+        console.warn("[Student] No peer connection yet, queueing signal");
+        if (signal.type === "ice") iceQueue.current.push(signal.candidate);
+        return;
+      }
+
+      const pc = pcRef.current;
+
+      if (signal.type === "offer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("signal", { to: from, signal: { type: "answer", answer } });
+      } else if (signal.type === "ice") {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        } catch (e) {
+          console.error("Error adding ICE:", e);
+        }
+      }
+    });
+
+    return () => socket.off("signal");
   }, []);
 
   const joinMeet = async (meetCode) => {
@@ -22,46 +61,52 @@ export default function StudentJoinMeet() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
         setJoined(true);
+
         localStorage.setItem("meetCode", meetCode);
         localStorage.setItem("joined", "true");
         localStorage.setItem("role", "student");
 
-        socket.emit("join-room", { code: meetCode, userId: socket.id, role: "student" });
+        const pc = new RTCPeerConnection();
+        pcRef.current = pc;
 
-        socket.on("signal", async ({ from, signal }) => {
-          let pc = peerConnections.current[from];
-          if (!pc) {
-            pc = new RTCPeerConnection();
-            peerConnections.current[from] = pc;
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+        pc.ontrack = (e) => {
+          console.log("✅ Received track from teacher");
+          setRemoteStream(e.streams[0]);
+        };
 
-            pc.onicecandidate = (e) => {
-              if (e.candidate) {
-                socket.emit("signal", {
-                  to: from,
-                  signal: { type: "ice", candidate: e.candidate },
-                });
-              }
-            };
-
-            pc.ontrack = (e) => {
-              setRemoteStream(e.streams[0]);
-            };
+        pc.onicecandidate = (e) => {
+          if (e.candidate) {
+            socket.emit("signal", {
+              to: res.data.teacherId,
+              signal: { type: "ice", candidate: e.candidate },
+            });
           }
+        };
 
-          if (signal.type === "offer") {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socket.emit("signal", { to: from, signal: { type: "answer", answer } });
-          } else if (signal.type === "ice") {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        // Handle any queued ICE candidates
+        iceQueue.current.forEach(async (c) => {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(c));
+            console.log("[Student] Processed queued ICE");
+          } catch (err) {
+            console.error("Failed to add queued ICE:", err);
           }
         });
+        iceQueue.current = [];
+
+        socket.emit("join-room", {
+          code: meetCode,
+          userId: socket.id,
+          role: "student",
+          name,
+        });
+
+        console.log("[Student] Joined room", meetCode);
       }
     } catch (err) {
-      alert("Invalid meet code or error joining. Please try again.");
+      alert("Invalid meet code or error joining.");
       console.error(err);
     }
   };
@@ -79,36 +124,31 @@ export default function StudentJoinMeet() {
   };
 
   const handleLeave = () => {
-    // Close media stream
-    localStream?.getTracks().forEach(track => track.stop());
-
-    // Close peer connections
-    Object.values(peerConnections.current).forEach((pc) => pc.close());
-    peerConnections.current = {};
-
+    localStream?.getTracks().forEach((track) => track.stop());
+    pcRef.current?.close();
+    pcRef.current = null;
     socket.disconnect();
-
     setJoined(false);
     setLocalStream(null);
     setRemoteStream(null);
-    localStorage.clear(); // remove role, code, joined
+    localStorage.clear();
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 min-h-screen bg-white dark:bg-gray-900 transition-colors">
       {!joined ? (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-purple-700">Enter Meet Code</h2>
+        <div className="space-y-4 max-w-md mx-auto">
+          <h2 className="text-xl font-bold text-purple-700 dark:text-purple-300">Enter Meet Code</h2>
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="ABC123"
-            className="border px-4 py-2 rounded"
+            className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
           />
           <button
             onClick={handleJoinMeet}
-            className="px-4 py-2 bg-purple-600 text-white rounded"
+            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
           >
             Join Meet
           </button>
@@ -117,28 +157,25 @@ export default function StudentJoinMeet() {
         <div className="w-full h-[80vh] flex flex-col items-center justify-center">
           {remoteStream ? (
             <video
-              ref={(video) => {
-                if (video) video.srcObject = remoteStream;
-              }}
+              ref={remoteVideoRef}
               autoPlay
               playsInline
-              controls={false}
               className="w-full h-full object-contain rounded-xl shadow-lg"
             />
           ) : (
-            <p className="text-gray-500">Waiting for teacher's video...</p>
+            <p className="text-gray-600 dark:text-gray-300">Waiting for teacher's video...</p>
           )}
 
           <div className="mt-4 space-x-3">
             <button
               onClick={toggleMic}
-              className="px-4 py-2 bg-yellow-500 text-white rounded"
+              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded transition"
             >
               {micOn ? "Mute Mic" : "Unmute Mic"}
             </button>
             <button
               onClick={handleLeave}
-              className="px-4 py-2 bg-red-600 text-white rounded"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition"
             >
               Leave Meeting
             </button>

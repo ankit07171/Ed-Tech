@@ -1,12 +1,10 @@
-// All student pages are updated below with dark mode support
-
-// ✅ Login Page
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import "../../index.css";
+import {jwtDecode} from "jwt-decode";
 
 const getCookieValue = (name) => {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
@@ -29,7 +27,15 @@ export default function Login() {
         { email, password },
         { withCredentials: true }
       );
-      toast.success("Logged in!");
+      toast.success("Logged in!"); 
+
+      const token = getCookieValue("jwt");
+if (token) {
+  const decoded = jwtDecode(token);
+  localStorage.setItem("userName", decoded.userName); // store for meet
+  console.log(token,decoded);
+}
+
       const role = res.data.user.role;
       if (!role) return toast.error("Could not determine user role.");
       navigate(role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/");

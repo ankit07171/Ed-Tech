@@ -7,10 +7,8 @@ export const createMeet = async (req, res) => {
   try {
     let code;
     let exists = true;
-
-    // keep generating until unique
     while (exists) {
-      code = nanoid(6).toUpperCase(); // like "ABC123"
+      code = nanoid(6).toUpperCase();  
       const existing = await Meet.findOne({ code });
       if (!existing) exists = false;
     }
@@ -28,11 +26,11 @@ export const createMeet = async (req, res) => {
 };
 
 
-
 export const validateMeet = async (req, res) => {
   const { code } = req.body;
   try {
     const meet = await Meet.findOne({ code });
+       
     if (!meet) return res.status(404).json({ error: "Meet not found" });
     res.status(200).json({ valid: true });
   } catch (err) {

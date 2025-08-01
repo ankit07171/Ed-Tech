@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
-import {Moon, Sun} from "lucide-react";
-import { useTheme } from "../../context/ThemeContext.jsx"; // 👈 Make sure path is correct
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext.jsx"; 
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,7 +29,7 @@ export default function Header() {
           <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">QA Skills</h1>
         </Link>
 
-        {/* Desktop Menu */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex gap-6 items-center">
           {navLinks.map((link) => (
             <Link
@@ -40,13 +40,16 @@ export default function Header() {
               {link.name}
             </Link>
           ))}
-          
+          {/* Desktop Theme Toggle */}
           <button
             onClick={toggleTheme}
             className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded transition text-black dark:text-white"
           >
-            {!isDark ? <Moon className="w-5 h-5 text-purple-300"/>:
-            <Sun className="w-5 h-5 text-yellow-400" />}
+            {isDark ? (
+              <Sun className="w-5 h-5 text-yellow-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-purple-300" />
+            )}
           </button>
         </nav>
 
@@ -60,20 +63,31 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Slide-in Mobile Menu (Right Side) */}
+      {/* Slide-in Mobile Menu */}
       <div
         className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-gray-900 shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
           menuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Close Button Inside Menu */}
-        <div className="flex justify-end p-4">
+        {/* Top Bar in Mobile Menu */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
           <button onClick={toggleMenu} className="text-2xl text-purple-700 dark:text-purple-300">
             <FiX />
           </button>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-black dark:text-white transition"
+          >
+            {isDark ? (
+              <Sun className="w-5 h-5 text-yellow-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-purple-300" />
+            )}
+          </button>
         </div>
 
-        <nav className="flex flex-col px-6 py-2 space-y-4">
+        {/* Mobile Navigation Links */}
+        <nav className="flex flex-col px-6 py-4 space-y-4">
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -84,14 +98,6 @@ export default function Header() {
               {link.name}
             </Link>
           ))}
-          {/* Theme Toggle in Mobile */}
-          <button
-            onClick={toggleTheme}
-            className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-black dark:text-white rounded transition"
-          >
-            {isDark ? <Moon className="w-5 h-5 text-purple-300"/>:
-            <Sun className="w-5 h-5 text-yellow-400" />}
-          </button>
         </nav>
       </div>
     </header>
