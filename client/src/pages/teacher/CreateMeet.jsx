@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useSocket } from "../../context/SocketContext.jsx";
+import React, { useEffect, useRef, useState } from "react"; 
+import socket from "../../socket/socket";
 
-export default function TeacherMeet() {
-  const socket = useSocket();
+export default function TeacherMeet() { 
   const [code, setCode] = useState(localStorage.getItem("meetCode") || "");
   const [started, setStarted] = useState(localStorage.getItem("meetStarted") === "1");
   const [stream, setStream] = useState(null);
