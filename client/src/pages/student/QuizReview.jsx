@@ -68,6 +68,9 @@ export default function QuizReview() {
             plugins: {
               legend: {
                 position: "bottom",
+                labels: {
+                  color: isDarkTheme() ? "#E5E7EB" : "#1F2937", // auto text color based on theme
+                },
               },
             },
           }}
@@ -79,20 +82,20 @@ export default function QuizReview() {
         return (
           <div
             key={i}
-            className="mb-6 border rounded p-4 shadow-sm"
-            style={{
-              backgroundColor: isCorrect ? "#ecfdf5" : "#fef2f2",
-              borderColor: isCorrect ? "#34D399" : "#F87171",
-            }}
+            className={`mb-6 border rounded p-4 shadow-sm ${
+              isCorrect
+                ? "bg-green-50 border-green-400 dark:bg-green-900 dark:border-green-500"
+                : "bg-red-50 border-red-400 dark:bg-red-900 dark:border-red-500"
+            }`}
           >
-            <p className="font-semibold mb-2 text-gray-800 dark:text-gray-900">
+            <p className="font-semibold mb-2 text-gray-800 dark:text-gray-100">
               Q{i + 1}: {a.question}
             </p>
-            <p className="text-gray-800 dark:text-gray-900">
+            <p className="text-gray-800 dark:text-gray-100">
               Your Answer:{" "}
               <span
                 className={`font-semibold ${
-                  isCorrect ? "text-green-700" : "text-red-600"
+                  isCorrect ? "text-green-700 dark:text-green-300" : "text-red-600 dark:text-red-300"
                 }`}
               >
                 {a.selected || "Not Answered"}
@@ -123,3 +126,8 @@ export default function QuizReview() {
     </div>
   );
 }
+
+// Optional: If you want dynamic chart label colors
+const isDarkTheme = () => {
+  return document.documentElement.classList.contains("dark");
+};

@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext.jsx"; // ✅ Ensure this exists and is correct
+import { useTheme } from "../../context/ThemeContext.jsx"; 
+import Cookies from "js-cookie";  
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-
+  const role = Cookies.get("userRole") || "teacher";
   const navLinks = [
     { name: "Home", path: "/teacher" },
     { name: "About", path: "/teacher/about" },
@@ -24,7 +25,7 @@ export default function Header() {
   return (
     <header className="bg-white dark:bg-gray-900 shadow-md fixed w-full z-50">
       <div className="max-w-full mx-auto px-8 py-2 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to={`${role}`} className="flex items-center gap-2">
           <img src="/logo.png" alt="QA Skills Logo" className="h-12 w-auto rounded-md" />
           <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">QA Skills</h1>
         </Link>

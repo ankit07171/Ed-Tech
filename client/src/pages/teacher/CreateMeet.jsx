@@ -28,13 +28,13 @@ export default function TeacherMeet() {
     socket.on("user-joined", handleUserJoined);
     socket.on("signal", handleSignal);
     socket.on("user-left", handleUserLeft);
-     socket.on("user-message", handleUserMessage);
+    socket.on("user-message", handleUserMessage);
 
     return () => {
       socket.off("user-joined", handleUserJoined);
       socket.off("signal", handleSignal);
       socket.off("user-left", handleUserLeft);
-    socket.off("user-message", handleUserMessage);
+      socket.off("user-message", handleUserMessage);
     };
   }, [stream]);
 
@@ -56,7 +56,7 @@ export default function TeacherMeet() {
   };
 
   const startMeet = async () => {
-    try {
+    try { 
       const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setStream(s);
       localStorage.setItem("meetStarted", "1");
@@ -72,10 +72,12 @@ export default function TeacherMeet() {
     const pc = new RTCPeerConnection();
     peerRefs.current[userId] = pc;
 
+    // used for add tracks like video or audio to rtcp connection
     stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
 
+    //use for emiting the data of user(ip,port)
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         socket.emit("signal", {
@@ -85,6 +87,8 @@ export default function TeacherMeet() {
       }
     };
 
+    // this funtion used for sending the video,audio stream
+    // e.streams[0] contains the full MediaStream from the remote user.
     pc.ontrack = (e) => {
       setRemoteStreams((prev) => ({ ...prev, [userId]: e.streams[0] }));
     };
@@ -202,7 +206,7 @@ export default function TeacherMeet() {
   } else if (type === "leave") {
     setLeaveMsg(`👋 ${name} left the meet`);
   }
-  setTimeout(() => setLeaveMsg(""), 3000);
+  setTimeout(() => setLeaveMsg(""), 2000);
 };
 
 
