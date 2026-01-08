@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function QuizList() {
   const [quizzes, setQuizzes] = useState([]);
   const navigate = useNavigate();

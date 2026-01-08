@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify"; 
 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function AttemptQuiz() {
   const { quizId } = useParams();
   const navigate = useNavigate();

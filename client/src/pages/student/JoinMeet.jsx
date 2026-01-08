@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import socket from "../../socket/socket";
 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function StudentJoinMeet() {
   const [code, setCode] = useState(localStorage.getItem("meetCode") || "");
   const [joined, setJoined] = useState(localStorage.getItem("joined") === "true");

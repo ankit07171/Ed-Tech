@@ -4,6 +4,7 @@ import axios from "axios";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function QuizReview() {
