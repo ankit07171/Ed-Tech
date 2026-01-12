@@ -3,9 +3,8 @@ import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
 import sendOTPEmail  from "../utils/sendMail.js";
 
-const otpStore = new Map(); // Temporary in-memory OTP storage
+const otpStore = new Map(); 
 
-// Send OTP Controller
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;

@@ -5,6 +5,8 @@ import { toast } from "react-toastify";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import "../../index.css";
 import {jwtDecode} from "jwt-decode";
+ 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 
 const getCookieValue = (name) => {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
@@ -30,17 +32,17 @@ export default function Login() {
       toast.success("Logged in!"); 
 
       const token = getCookieValue("jwt");
-if (token) {
-  const decoded = jwtDecode(token);
-  localStorage.setItem("userName", decoded.userName); // store for meet
-  console.log(token,decoded);
-}
+const role = res.data.user.role;
+const name = res.data.user.fullName;
 
-      const role = res.data.user.role;
-      if (!role) return toast.error("Could not determine user role.");
-      navigate(role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/");
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Login failed");
+localStorage.setItem("role", role);
+localStorage.setItem("userName", name);
+
+navigate(role === "student" ? "/student" : "/teacher");
+ 
+       } catch (err) {
+      toast.error(err.message || "Login failed"); 
+      
     } finally {
       setLoading(false);
     }

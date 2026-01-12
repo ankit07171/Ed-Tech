@@ -1,11 +1,10 @@
- import Attendance from "../models/attendanceModel.js";
- import User from "../models/userModel.js";
- 
-export const attend = async (req, res) => {
-  const { date, records } = req.body;  
+import Attendance from "../models/attendanceModel.js";
 
-  try { 
-    const cleanRecords = records.filter((r) => r.studentId && r.fullName && r.status);
+// Teacher marks attendance
+export const attend = async (req, res) => {
+  const { date, records } = req.body;
+  try {
+    const cleanRecords = records.filter(r => r.studentId && r.fullName && r.status);
     let entry = await Attendance.findOne({ date });
 
     if (entry) {
@@ -17,47 +16,39 @@ export const attend = async (req, res) => {
 
     res.status(200).json({ message: "Attendance saved!" });
   } catch (error) {
-    console.error("Attendance mark error:", error);
+    console.error(error);
     res.status(500).json({ error: "Failed to save attendance" });
   }
 };
 
-
- export const attendanceOnDate = async (req, res) => {
+// Get attendance by date (any authenticated user)
+export const attendanceOnDate = async (req, res) => {
   try {
     const { date } = req.params;
-
     const attendance = await Attendance.findOne({ date });
 
-    if (!attendance) {
-      return res.status(404).json({ message: "No attendance found" });
-    }
+    if (!attendance) return res.status(404).json({ message: "No attendance found" });
 
-    return res.status(200).json(attendance); // ✅ fixed: send plain object
+    res.status(200).json(attendance);
   } catch (err) {
-    res.status(500).json({ error: "Error while getting Data", err });
+    res.status(500).json({ error: "Error fetching attendance" });
   }
 };
 
-
-// GET /api/attendance/user/:studentId
+// Student fetches their own attendance
 export const getMyAttendance = async (req, res) => {
   try {
     const studentId = req.user._id;
-
-    const allAttendance = await Attendance.find({
-      "records.studentId": studentId,
-    });
+    const allAttendance = await Attendance.find({ "records.studentId": studentId });
 
     const mapped = {};
-    allAttendance.forEach((entry) => {
-      const record = entry.records.find((r) => r.studentId.toString() === studentId.toString());
+    allAttendance.forEach(entry => {
+      const record = entry.records.find(r => r.studentId.toString() === studentId.toString());
       if (record) mapped[entry.date] = record.status;
     });
 
     res.status(200).json(mapped);
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: "Failed to fetch attendance" });
   }
 };
-

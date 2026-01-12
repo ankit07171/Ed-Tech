@@ -6,6 +6,7 @@ import { FaUser, FaEnvelope, FaLock, FaPhone } from "react-icons/fa";
 import { IoEye, IoEyeOff } from "react-icons/io5";
 import { useTheme } from "../../context/ThemeContext.jsx";
 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function Signin() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -66,7 +67,7 @@ setContact(trimmedContact);
       setTimeLeft(300);
       setStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.error || "OTP send failed");
+      toast.error(err.message || "OTP send failed");
     } finally {
       setLoadingOtp(false);
     }

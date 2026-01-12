@@ -1,14 +1,7 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 1845,
-    proxy: {
-      '/api':"https://ed-tech-44mp.onrender.com" ,
-    },
-  },
-});
-// http://localhost:7171
-// "https://ed-tech-44mp.onrender.com"
+  plugins: [react(),tailwindcss()],
+})
