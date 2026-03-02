@@ -22,7 +22,7 @@ export default function StudentNotesView() {
           <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{note.title}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">By: {note.uploadedBy?.fullName}</p>
           <a
-            href={`http://localhost:7171${note.filePath}`}
+            href={`${import.meta.env.VITE_BASE_URL}${note.filePath}`}
             download
             className="text-blue-600 dark:text-blue-400 underline mt-1 block"
           >

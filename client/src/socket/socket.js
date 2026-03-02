@@ -1,5 +1,3 @@
 import { io } from "socket.io-client";
-const socket = io("http://localhost:5173");
+const socket = io(import.meta.env.VITE_BASE_URL || "http://localhost:7171");
 export default socket;
-// "http://localhost:7171"
-// "https://ed-tech-44mp.onrender.com"
