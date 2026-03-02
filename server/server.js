@@ -22,10 +22,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 // CORS Configuration
-const allowedOrigins = process.env.CLIENT_URL 
-  ? "https://ed-tech-1-dz4e.onrender.com"
-  : ["http://localhost:5173", "http://localhost:1845", "http://localhost:7171"];
-console.log("Allowed Origins:", allowedOrigins);
+const allowedOrigins = "https://ed-tech-1-dz4e.onrender.com";
 app.use(
   cors({
     origin: allowedOrigins,
@@ -34,6 +31,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+    console.log("Allowed Origins:", allowedOrigins);
 
 app.use(express.json());
 app.use(cookieParser());
