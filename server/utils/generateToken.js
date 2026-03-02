@@ -8,11 +8,12 @@ const generateToken = (user, res) => {
   );
 
   res.cookie("jwt", token, {
-    httpOnly: true,          // important
-    secure: true,            // REQUIRED on HTTPS
-    sameSite: "None",        // REQUIRED for cross-domain
-    maxAge: 15 * 24 * 60 * 60 * 1000,
-  });
+  httpOnly: true,
+  secure: true,        // must be true on Render
+  sameSite: "None",    // must be None for cross-domain
+  path: "/",           // important
+  maxAge: 15 * 24 * 60 * 60 * 1000,
+});
 
   return token;
 };
