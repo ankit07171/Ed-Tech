@@ -20,57 +20,40 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
-
-// CORS Configuration
-const allowedOrigins = "https://ed-tech-1-dz4e.onrender.com";
+ 
 app.use(
   cors({
-    origin: "https://ed-tech-1-dz4e.onrender.com",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   })
 );
-   
+    
 app.use(express.json());
 app.use(cookieParser());
-
-// ─────────────────────────────
-// Static Files (uploads only)
-// ─────────────────────────────
+ 
 app.use("/uploads", express.static("uploads"));
-
-// ─────────────────────────────
-// API Routes
-// ─────────────────────────────
+ 
 app.use("/api/auth", authRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/meet", meetRoutes);
-
-// ─────────────────────────────
-// Health Check
-// ─────────────────────────────
+ 
 app.get("/", (req, res) => {
   res.send("Server is Live ✅");
 });
-
-// ─────────────────────────────
-// Socket.IO
-// ─────────────────────────────
+ 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: process.env.CLIENT_URL,
     credentials: true,
     methods: ["GET", "POST"],
   },
 });
 
 setupMeetSocket(io);
-
-// ─────────────────────────────
-// Server Startup (LIKE FIRST APP)
-// ─────────────────────────────
+ 
 const startServer = async () => {
   try {
     await mongoConnect();
