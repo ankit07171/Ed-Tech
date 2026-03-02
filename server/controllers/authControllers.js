@@ -104,10 +104,11 @@ export const signup = async (req, res) => {
     });
 
     await newUser.save();
-    generateToken(newUser, res);
+    const token = generateToken(newUser, res);
 
     res.status(201).json({
       msg: "Signup successful",
+      token, // Send token in response
       user: {
         _id: newUser._id,
         fullName: newUser.fullName,
@@ -132,10 +133,11 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-    generateToken(user, res);
+    const token = generateToken(user, res);
 
     res.status(200).json({
       msg: "Login successful",
+      token, // Send token in response
       user: {
         _id: user._id,
         fullName: user.fullName,
@@ -150,19 +152,20 @@ export const login = async (req, res) => {
 };
 
 // Logout Controller
-// Logout Controller
 export const logout = (req, res) => {
   try {
     res.clearCookie("jwt", {
-      httpOnly: false,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "Strict",
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/",
     });
 
     res.clearCookie("userRole", {
       httpOnly: false,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "Strict",
+      secure: true,
+      sameSite: "None",
+      path: "/",
     });
 
     res.status(200).json({ message: "Logged out successfully" });

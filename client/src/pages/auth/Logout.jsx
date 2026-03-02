@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie"; // ✅ ADD THIS
  
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
+
 export default function Logout() {
   const navigate = useNavigate();
-  const role = Cookies.get("userRole");
+  const role = localStorage.getItem("role");
   const [showConfirm, setShowConfirm] = useState(true);
 
   const handleLogout = async () => {
@@ -16,6 +16,7 @@ export default function Logout() {
       toast.success("Logged out successfully");
       console.log('Logged Out');
       
+      // Clear all localStorage
       localStorage.clear();
       navigate("/");
     } catch (err) {

@@ -7,13 +7,14 @@ const generateToken = (user, res) => {
     { expiresIn: "15d" }
   );
 
+  // Set httpOnly cookie for backend authentication
   res.cookie("jwt", token, {
-  httpOnly: true,
-  secure: false,        // must be true on Render
-  sameSite: "lax",    // must be None for cross-domain
-  path: "/",           // important
-  maxAge: 15 * 24 * 60 * 60 * 1000,
-});
+    httpOnly: true,
+    secure: true,        // must be true on Render
+    sameSite: "None",    // must be None for cross-domain
+    path: "/",           // important
+    maxAge: 15 * 24 * 60 * 60 * 1000,
+  });
 
   return token;
 };

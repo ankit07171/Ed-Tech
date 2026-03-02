@@ -4,15 +4,8 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import "../../index.css";
-import {jwtDecode} from "jwt-decode";
  
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
-const getCookieValue = (name) => {
-  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-  if (match) return decodeURIComponent(match[2]);
-  return null;
-};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,18 +24,19 @@ export default function Login() {
       );
       toast.success("Logged in!"); 
 
-      const token = getCookieValue("jwt");
-const role = res.data.user.role;
-const name = res.data.user.fullName;
+      // Store token and user info from response
+      const token = res.data.token;
+      const role = res.data.user.role;
+      const name = res.data.user.fullName;
 
-localStorage.setItem("role", role);
-localStorage.setItem("userName", name);
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
+      localStorage.setItem("userName", name);
 
-navigate(role === "student" ? "/student" : "/teacher");
+      navigate(role === "student" ? "/student" : "/teacher");
  
-       } catch (err) {
-      toast.error(err.message || "Login failed"); 
-      
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Login failed"); 
     } finally {
       setLoading(false);
     }

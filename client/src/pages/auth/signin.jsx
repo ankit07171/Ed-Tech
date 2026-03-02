@@ -87,7 +87,7 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
 
     setLoadingSignup(true);
     try {
-      await axios.post("/api/auth/signup", {
+      const res = await axios.post("/api/auth/signup", {
         fullName,
         email: trimmedEmail,
         gender,
@@ -96,10 +96,21 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
         confirmPassword,
         role,
         userOtp: otp,
-      });
+      }, { withCredentials: true });
 
       toast.success("Signup successful!");
-      navigate("/login");
+      
+      // Store token and user info from response
+      const token = res.data.token;
+      const userRole = res.data.user.role;
+      const userName = res.data.user.fullName;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", userRole);
+      localStorage.setItem("userName", userName);
+
+      // Navigate based on role
+      navigate(userRole === "student" ? "/student" : "/teacher");
     } catch (err) {
       toast.error(err.response?.data?.error || "Signup failed");
     } finally {
