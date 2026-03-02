@@ -7,14 +7,19 @@ const generateToken = (user, res) => {
     { expiresIn: "15d" }
   );
 
-  // Set httpOnly cookie for backend authentication
-  res.cookie("jwt", token, {
+  // Cookie settings for cross-origin
+  const cookieOptions = {
     httpOnly: true,
-    secure: true,        // must be true on Render
-    sameSite: "None",    // must be None for cross-domain
-    path: "/",           // important
-    maxAge: 15 * 24 * 60 * 60 * 1000,
-  });
+    secure: process.env.NODE_ENV === "production",  // true in production
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",  // None for cross-origin
+    path: "/",
+    maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+  };
+
+  console.log("🍪 Setting cookie with options:", cookieOptions);
+  
+  // Set httpOnly cookie for backend authentication
+  res.cookie("jwt", token, cookieOptions);
 
   return token;
 };
