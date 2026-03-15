@@ -5,6 +5,8 @@ import { ThemeProvider, useTheme } from './context/ThemeContext.jsx';
 import axios from 'axios';
 
 // Global axios config - set baseURL and attach token to every request
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || "http://localhost:7171";
+
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
