@@ -63,7 +63,7 @@ export default function StudentJoinMeet() {
 
   const joinMeet = async (meetCode) => {
     try {
-      const res = await axios.post("/api/meet/join", { code: meetCode });
+      const res = await axios.post("/api/meet/join", { code: meetCode }, { withCredentials: true });
       if (res.data.valid) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);

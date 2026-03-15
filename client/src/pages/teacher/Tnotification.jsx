@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import Cookies from "js-cookie";
 
 export default function TeacherNotification() {
   const [form, setForm] = useState({ title: "", message: "" });
@@ -12,14 +13,16 @@ export default function TeacherNotification() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const role = localStorage.getItem("role");
+    const role = Cookies.get("userRole");
     if (role !== "teacher") {
       toast.error("Unauthorized: Only teachers can send notifications");
       return;
     }
 
     try {
-      await axios.post("/api/notifications/create", form);
+      await axios.post("/api/notifications/create", form, {
+        withCredentials: true,
+      });
       toast.success("Notification posted");
       setForm({ title: "", message: "" });
     } catch (err) {

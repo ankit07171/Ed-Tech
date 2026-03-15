@@ -15,28 +15,26 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("/api/auth/login", { email, password });
+      const res = await axios.post(
+        "/api/auth/login",
+        { email, password },
+        { withCredentials: true }
+      );
+      toast.success("Logged in!"); 
 
-      const token = res.data?.token;
-      const role = res.data?.user?.role;
-      const name = res.data?.user?.fullName;
-      const userId = res.data?.user?._id;
-
-      if (!token || !role) {
-        toast.error("Login failed: unexpected server response");
-        return;
-      }
+      // Store token and user info from response
+      const token = res.data.token;
+      const role = res.data.user.role;
+      const name = res.data.user.fullName;
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
       localStorage.setItem("userName", name);
-      localStorage.setItem("userId", userId);
 
-      toast.success("Logged in!");
       navigate(role === "student" ? "/student" : "/teacher");
-
+ 
     } catch (err) {
-      toast.error(err.response?.data?.error || "Login failed");
+      toast.error(err.response?.data?.error || "Login failed"); 
     } finally {
       setLoading(false);
     }

@@ -14,7 +14,9 @@ const startTimeRef = useRef(Date.now());
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await axios.get(`/api/quizzes/one/${quizId}`);
+        const res = await axios.get(`/api/quizzes/one/${quizId}`, {
+          withCredentials: true,
+        });
 
         if (res.data && res.data.questions) {
           setQuiz(res.data);
@@ -34,7 +36,11 @@ const startTimeRef = useRef(Date.now());
     const timeSpentInSeconds = Math.floor((Date.now() - startTimeRef) / 1000);
 
     try {
-      await axios.post("/api/quizzes/submit", { quizId, answers, timeSpentInSeconds });
+      await axios.post(
+        "/api/quizzes/submit",
+        { quizId, answers, timeSpentInSeconds },
+        { withCredentials: true }
+      );
 
       toast.success("Quiz submitted!");
       navigate(`/student/quiz/review/${quizId}`);

@@ -8,7 +8,7 @@ export default function QuizList() {
 
   useEffect(() => {
     const fetch = async () => {
-      const res = await axios.get("/api/quizzes/all");
+      const res = await axios.get("/api/quizzes/all", { withCredentials: true });
       setQuizzes(res.data);
     };
     fetch();

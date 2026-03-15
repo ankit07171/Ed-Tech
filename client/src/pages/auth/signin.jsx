@@ -95,7 +95,7 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
         confirmPassword,
         role,
         userOtp: otp,
-      });
+      }, { withCredentials: true });
 
       toast.success("Signup successful!");
       
@@ -107,7 +107,6 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
       localStorage.setItem("token", token);
       localStorage.setItem("role", userRole);
       localStorage.setItem("userName", userName);
-      localStorage.setItem("userId", res.data.user._id);
 
       // Navigate based on role
       navigate(userRole === "student" ? "/student" : "/teacher");

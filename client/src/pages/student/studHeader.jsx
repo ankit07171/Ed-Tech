@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext.jsx"; 
+import Cookies from "js-cookie";  
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,7 +21,7 @@ export default function Header() {
   ];
 
   const toggleMenu = () => setMenuOpen(!menuOpen);  
-  const role = localStorage.getItem("role") || "student";
+  const role = Cookies.get("userRole") || "student";;
   return (
     <header className="bg-white dark:bg-gray-900 shadow-md fixed w-full z-50">
       <div className="max-w-full mx-auto px-8 py-2 flex items-center justify-between">

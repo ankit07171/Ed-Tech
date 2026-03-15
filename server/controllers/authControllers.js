@@ -1,17 +1,19 @@
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
-import sendOTPEmail from "../utils/sendMail.js";
+import sendOTPEmail  from "../utils/sendMail.js";
 
-const otpStore = new Map();
+const otpStore = new Map(); 
 
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
+
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const otp = await sendOTPEmail(email);
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+
     otpStore.set(email, { otp, expiresAt });
 
     res.status(200).json({ message: "OTP sent successfully" });
@@ -50,7 +52,16 @@ const femaleAvatars = [
 // Signup Controller
 export const signup = async (req, res) => {
   try {
-    const { fullName, email, password, confirmPassword, gender, contact, role, userOtp } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      confirmPassword,
+      gender,
+      contact,
+      role,
+      userOtp,
+    } = req.body;
 
     if (!otpStore.has(email)) {
       return res.status(400).json({ error: "Email already Logged in. Try another" });
@@ -67,7 +78,7 @@ export const signup = async (req, res) => {
       return res.status(400).json({ error: "Invalid OTP" });
     }
 
-    otpStore.delete(email);
+    otpStore.delete(email); // cleanup used OTP
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -82,14 +93,22 @@ export const signup = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashPass = await bcrypt.hash(password, salt);
 
-    const newUser = new User({ fullName, email, password: hashPass, gender, contact, role, profilePic: randomAvatar });
-    await newUser.save();
+    const newUser = new User({
+      fullName,
+      email,
+      password: hashPass,
+      gender,
+      contact,
+      role,
+      profilePic: randomAvatar,
+    });
 
-    const token = generateToken(newUser);
+    await newUser.save();
+    const token = generateToken(newUser, res);
 
     res.status(201).json({
       msg: "Signup successful",
-      token,
+      token, // Send token in response
       user: {
         _id: newUser._id,
         fullName: newUser.fullName,
@@ -114,11 +133,11 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-    const token = generateToken(user);
+    const token = generateToken(user, res);
 
     res.status(200).json({
       msg: "Login successful",
-      token,
+      token, // Send token in response
       user: {
         _id: user._id,
         fullName: user.fullName,
@@ -134,13 +153,35 @@ export const login = async (req, res) => {
 
 // Logout Controller
 export const logout = (req, res) => {
-  res.status(200).json({ message: "Logged out successfully" });
+  try {
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/",
+    });
+
+    res.clearCookie("userRole", {
+      httpOnly: false,
+      secure: true,
+      sameSite: "None",
+      path: "/",
+    });
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
+
 
 // Get All Teachers
 export const getTeachers = async (req, res) => {
   try {
-    const users = await User.find({ role: "teacher" }).select("fullName email profilePic role");
+    const users = await User.find({ role: "teacher" }).select(
+      "fullName email profilePic role"
+    );
     res.status(200).json(users);
   } catch (error) {
     console.error("Error fetching teachers:", error.message);
@@ -151,7 +192,9 @@ export const getTeachers = async (req, res) => {
 // Get All Students
 export const getStudents = async (req, res) => {
   try {
-    const users = await User.find({ role: "student" }).select("fullName email profilePic role");
+    const users = await User.find({ role: "student" }).select(
+      "fullName email profilePic role"
+    );
     res.status(200).json(users);
   } catch (error) {
     console.error("Error fetching students:", error.message);

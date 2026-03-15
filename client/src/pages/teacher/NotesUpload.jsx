@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import Cookies from "js-cookie";
 
 export default function TeacherNotesManager() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = localStorage.getItem("userId");
+  const userRole = Cookies.get("userRole");
 
   useEffect(() => {
     fetchNotes();
@@ -28,7 +29,7 @@ export default function TeacherNotesManager() {
     if (!confirm) return;
 
     try {
-      await axios.delete(`/api/notes/delete/${id}`);
+      await axios.delete(`/api/notes/delete/${id}`, { withCredentials: true });
       toast.success("Note deleted successfully");
       setNotes((prev) => prev.filter((n) => n._id !== id));
     } catch (err) {
@@ -66,7 +67,7 @@ export default function TeacherNotesManager() {
                 </a>
               </div>
 
-              {note.uploadedBy?._id === userId && (
+              {note.uploadedBy?._id === Cookies.get("userId") && (
                 <button
                   onClick={() => handleDelete(note._id)}
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded text-sm"

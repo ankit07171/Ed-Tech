@@ -16,7 +16,9 @@ export default function QuizReview() {
   useEffect(() => {
     const fetchAttempt = async () => {
       try {
-        const res = await axios.get(`/api/quizzes/student/attempt/${quizId}`);
+        const res = await axios.get(`/api/quizzes/student/attempt/${quizId}`, {
+          withCredentials: true,
+        });
 
         if (!res.data.attempted) {
           navigate(`/student/quiz/${quizId}`);
