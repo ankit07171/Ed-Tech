@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function QuizList() {
   const [quizzes, setQuizzes] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetch = async () => {
-      const res = await axios.get("/api/quizzes/all", { withCredentials: true });
+      const res = await axios.get("/api/quizzes/all");
       setQuizzes(res.data);
     };
     fetch();

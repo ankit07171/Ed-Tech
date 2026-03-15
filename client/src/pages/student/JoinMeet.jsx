@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import socket from "../../socket/socket";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function StudentJoinMeet() {
   const [code, setCode] = useState(localStorage.getItem("meetCode") || "");
   const [joined, setJoined] = useState(localStorage.getItem("joined") === "true");
@@ -64,7 +63,7 @@ export default function StudentJoinMeet() {
 
   const joinMeet = async (meetCode) => {
     try {
-      const res = await axios.post("/api/meet/join", { code: meetCode }, { withCredentials: true });
+      const res = await axios.post("/api/meet/join", { code: meetCode });
       if (res.data.valid) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);

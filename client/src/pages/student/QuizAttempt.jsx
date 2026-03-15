@@ -2,7 +2,6 @@ import { useEffect, useState,useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify"; 
 import axios from "axios";
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function AttemptQuiz() {
   const { quizId } = useParams();
   const navigate = useNavigate();
@@ -15,9 +14,7 @@ const startTimeRef = useRef(Date.now());
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await axios.get(`/api/quizzes/one/${quizId}`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(`/api/quizzes/one/${quizId}`);
 
         if (res.data && res.data.questions) {
           setQuiz(res.data);
@@ -37,11 +34,7 @@ const startTimeRef = useRef(Date.now());
     const timeSpentInSeconds = Math.floor((Date.now() - startTimeRef) / 1000);
 
     try {
-      await axios.post(
-        "/api/quizzes/submit",
-        { quizId, answers, timeSpentInSeconds },
-        { withCredentials: true }
-      );
+      await axios.post("/api/quizzes/submit", { quizId, answers, timeSpentInSeconds });
 
       toast.success("Quiz submitted!");
       navigate(`/student/quiz/review/${quizId}`);

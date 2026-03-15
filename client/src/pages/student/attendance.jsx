@@ -12,7 +12,6 @@ import {
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -32,9 +31,7 @@ export default function Attendance() {
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
-        const res = await axios.get("/api/attendance/user/me", {
-          withCredentials: true,
-        });
+      const res = await axios.get("/api/attendance/user/me");
         setAttendanceData(res.data);
       } catch (err) {
         console.error("Failed to load attendance:", err);

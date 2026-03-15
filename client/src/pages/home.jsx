@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 const sliderImages = [
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlQMVHbSTbRz706LNvzALQH3O3MtGPcLSApA&s",
   "https://www.ahaguru.com/new-website-assets/img/testseries_banner_desk.jpg",

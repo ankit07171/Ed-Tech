@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
  
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
 export default function Logout() {
   const navigate = useNavigate();
   const role = localStorage.getItem("role");
@@ -12,7 +10,7 @@ export default function Logout() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("/api/auth/logout", {}, { withCredentials: true });
+      await axios.post("/api/auth/logout", {});
       toast.success("Logged out successfully");
       console.log('Logged Out');
       

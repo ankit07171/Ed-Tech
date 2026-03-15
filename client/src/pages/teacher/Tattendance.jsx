@@ -10,7 +10,7 @@ export default function TeacherAttendance() {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const res = await axios.get("/api/auth/getStudent", { withCredentials: true });
+      const res = await axios.get("/api/auth/getStudent");
       setStudents(res.data);
 
       const initial = Object.fromEntries(res.data.map(s => [s._id, "absent"]));
@@ -24,7 +24,7 @@ export default function TeacherAttendance() {
       if (students.length === 0) return;
 
       try {
-        const res = await axios.get(`/api/attendance/${selectedDate}`, { withCredentials: true });
+        const res = await axios.get(`/api/attendance/${selectedDate}`);
         const map = {};
         res.data.records.forEach(r => { if (r.studentId && r.status) map[r.studentId] = r.status; });
 
@@ -45,7 +45,7 @@ export default function TeacherAttendance() {
   const handleSubmit = async () => {
     const records = students.map(s => ({ studentId: s._id, fullName: s.fullName, status: attendance[s._id] }));
     try {
-      await axios.post("/api/attendance/mark", { date: selectedDate, records }, { withCredentials: true });
+      await axios.post("/api/attendance/mark", { date: selectedDate, records });
       toast.success("Attendance saved!");
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to save attendance");

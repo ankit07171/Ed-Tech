@@ -3,12 +3,11 @@ import { Link } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext.jsx"; 
-import Cookies from "js-cookie";  
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const role = Cookies.get("userRole") || "teacher";
+  const role = localStorage.getItem("role") || "teacher";
   const navLinks = [
     { name: "Home", path: "/teacher" },
     { name: "About", path: "/teacher/about" },

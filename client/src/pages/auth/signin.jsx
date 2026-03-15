@@ -6,7 +6,6 @@ import { FaUser, FaEnvelope, FaLock, FaPhone } from "react-icons/fa";
 import { IoEye, IoEyeOff } from "react-icons/io5";
 import { useTheme } from "../../context/ThemeContext.jsx";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 export default function Signin() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -96,7 +95,7 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
         confirmPassword,
         role,
         userOtp: otp,
-      }, { withCredentials: true });
+      });
 
       toast.success("Signup successful!");
       
@@ -108,6 +107,7 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
       localStorage.setItem("token", token);
       localStorage.setItem("role", userRole);
       localStorage.setItem("userName", userName);
+      localStorage.setItem("userId", res.data.user._id);
 
       // Navigate based on role
       navigate(userRole === "student" ? "/student" : "/teacher");

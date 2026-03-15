@@ -4,7 +4,6 @@ import axios from "axios";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function QuizReview() {
@@ -17,9 +16,7 @@ export default function QuizReview() {
   useEffect(() => {
     const fetchAttempt = async () => {
       try {
-        const res = await axios.get(`/api/quizzes/student/attempt/${quizId}`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(`/api/quizzes/student/attempt/${quizId}`);
 
         if (!res.data.attempted) {
           navigate(`/student/quiz/${quizId}`);

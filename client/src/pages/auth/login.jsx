@@ -5,8 +5,6 @@ import { toast } from "react-toastify";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import "../../index.css";
  
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -17,11 +15,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(
-        "/api/auth/login",
-        { email, password },
-        { withCredentials: true }
-      );
+      const res = await axios.post("/api/auth/login", { email, password });
       toast.success("Logged in!"); 
 
       // Store token and user info from response
@@ -32,6 +26,7 @@ export default function Login() {
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
       localStorage.setItem("userName", name);
+      localStorage.setItem("userId", res.data.user._id);
 
       navigate(role === "student" ? "/student" : "/teacher");
  
