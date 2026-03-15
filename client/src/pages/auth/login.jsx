@@ -31,6 +31,8 @@ export default function Login() {
       navigate(role === "student" ? "/student" : "/teacher");
  
     } catch (err) {
+      console.log(err);
+      
       toast.error(err.response?.data?.error || "Login failed"); 
     } finally {
       setLoading(false);
