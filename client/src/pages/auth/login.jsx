@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import axios from "../../utils/axiosConfig.js";
 import { toast } from "react-toastify";
 import { FaEnvelope, FaLock } from "react-icons/fa";
@@ -10,6 +10,11 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Already logged in
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  if (token && role) return <Navigate to={`/${role}`} replace />;
 
   const handleLogin = async (e) => {
     e.preventDefault();

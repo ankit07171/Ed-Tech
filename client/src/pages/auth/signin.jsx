@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import axios from "../../utils/axiosConfig.js";
 import { toast } from "react-toastify";
 import { FaUser, FaEnvelope, FaLock, FaPhone } from "react-icons/fa";
 import { IoEye, IoEyeOff } from "react-icons/io5";
-import { useTheme } from "../../context/ThemeContext.jsx";
 
 export default function Signin() {
   const navigate = useNavigate();
-  const { isDark } = useTheme();
+
+  // Already logged in
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  if (token && role) return <Navigate to={`/${role}`} replace />;
 
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");

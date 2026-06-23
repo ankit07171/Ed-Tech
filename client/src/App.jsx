@@ -38,8 +38,15 @@ import TeacherQuizDashboard from "./pages/teacher/Quiz.jsx";
 import AllQuizzes from "./pages/teacher/AllQuizes.jsx";
 import TeacherMeet from "./pages/teacher/CreateMeet.jsx";
 
-export default function App() {
-  const { isDark } = useTheme();
+// Redirects to dashboard if logged in, otherwise to login
+function SmartRedirect() {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  if (token && role) return <Navigate to={`/${role}`} replace />;
+  return <Navigate to="/login" replace />;
+}
+
+export default function App() {  const { isDark } = useTheme();
 
   return (
     <div className={isDark ? "dark" : ""}>
@@ -92,7 +99,7 @@ export default function App() {
             <Route path="meet" element={<TeacherMeet />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<SmartRedirect />} />
         </Routes>
 
         <ToastContainer position="top-right" autoClose={3000} />
