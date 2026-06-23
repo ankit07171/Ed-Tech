@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "../../utils/axiosConfig.js";
 import socket from "../../socket/socket";
+import { ICE_SERVERS } from "../../utils/iceConfig.js";
 
 export default function TeacherMeet() {
   const [code, setCode] = useState(localStorage.getItem("meetCode") || "");
@@ -36,7 +37,7 @@ export default function TeacherMeet() {
       if (!s) return;
       setNames((prev) => ({ ...prev, [userId]: name }));
 
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+      const pc = new RTCPeerConnection(ICE_SERVERS);
       peerRefs.current[userId] = pc;
 
       s.getTracks().forEach((track) => pc.addTrack(track, s));
@@ -286,7 +287,6 @@ export default function TeacherMeet() {
             <button onClick={toggleCam} className={`px-4 py-2 text-white text-sm rounded transition ${camOn ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 hover:bg-gray-600"}`}>
               {camOn ? "📷 Cam Off" : "📷 Cam On"}
             </button>
-            <button onClick={leaveMeet} className="px-4 py-2 bg-orange-500 text-white text-sm rounded hover:bg-orange-600">Leave</button>
             <button onClick={endMeet} className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 font-semibold">End Meet for All</button>
           </div>
         </div>
