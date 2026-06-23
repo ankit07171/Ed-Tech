@@ -1,14 +1,29 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
-import { Moon, Sun } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext.jsx"; 
-import Cookies from "js-cookie";  
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isDark, toggleTheme } = useTheme();
-  const role = Cookies.get("userRole") || "teacher";
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
+  const userName = localStorage.getItem("userName") || "Teacher";
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login", { replace: true });
+  };
+
   const navLinks = [
     { name: "Home", path: "/teacher" },
     { name: "About", path: "/teacher/about" },
@@ -17,15 +32,12 @@ export default function Header() {
     { name: "Quiz", path: "/teacher/quiz" },
     { name: "Meet", path: "/teacher/meet" },
     { name: "Notes", path: "/teacher/notes" },
-    { name: "Logout", path: "/teacher/logout" },
   ];
-
-  const toggleMenu = () => setMenuOpen(!menuOpen);
 
   return (
     <header className="bg-white dark:bg-gray-900 shadow-md fixed w-full z-50">
       <div className="max-w-full mx-auto px-8 py-2 flex items-center justify-between">
-        <Link to={`${role}`} className="flex items-center gap-2">
+        <Link to="/teacher" className="flex items-center gap-2">
           <img src="/logo.png" alt="QA Skills Logo" className="h-12 w-auto rounded-md" />
           <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">QA Skills</h1>
         </Link>
@@ -41,65 +53,67 @@ export default function Header() {
               {link.name}
             </Link>
           ))}
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded transition text-black dark:text-white"
-          >
-            {!isDark ? (
-              <Moon className="w-5 h-5 text-purple-300" />
-            ) : (
-              <Sun className="w-5 h-5 text-yellow-400" />
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setDropdownOpen((p) => !p)}
+              className="text-sm text-purple-600 dark:text-purple-300 font-semibold border border-purple-300 px-3 py-1 rounded-full hover:bg-purple-50 dark:hover:bg-gray-700 transition"
+            >
+              👤 {userName} ▾
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                >
+                  Logout
+                </button>
+              </div>
             )}
-          </button>
+          </div>
         </nav>
 
         {/* Hamburger for Mobile */}
         <div className="md:hidden">
           {!menuOpen && (
-            <button onClick={toggleMenu} className="text-2xl text-purple-700 dark:text-purple-300">
+            <button onClick={() => setMenuOpen(true)} className="text-2xl text-purple-700 dark:text-purple-300">
               <FiMenu />
             </button>
           )}
         </div>
       </div>
 
-{/* Slide-in Mobile Menu */}
-<div
-  className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-gray-900 shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
-    menuOpen ? "translate-x-0" : "translate-x-full"
-  }`}
->
-  {/* Top bar with Close + Toggle Theme */}
-  <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-    <button onClick={toggleMenu} className="text-2xl text-purple-700 dark:text-purple-300">
-      <FiX />
-    </button>
-
-    {/* Toggle Theme Button */}
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-black dark:text-white transition"
-    >
-      {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-purple-300" />}
-    </button>
-  </div>
-
-  {/* Navigation Links */}
-  <nav className="flex flex-col px-6 py-4 space-y-4">
-    {navLinks.map((link) => (
-      <Link
-        key={link.name}
-        to={link.path}
-        onClick={() => setMenuOpen(false)}
-        className="text-gray-700 dark:text-gray-200 font-medium hover:text-purple-600 dark:hover:text-purple-400 transition"
+      {/* Slide-in Mobile Menu */}
+      <div
+        className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-gray-900 shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
+          menuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
       >
-        {link.name}
-      </Link>
-    ))}
-  </nav>
-</div>
-
-       </header>
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+          <button onClick={() => setMenuOpen(false)} className="text-2xl text-purple-700 dark:text-purple-300">
+            <FiX />
+          </button>
+          <span className="text-sm text-purple-600 dark:text-purple-300 font-semibold">👤 {userName}</span>
+        </div>
+        <nav className="flex flex-col px-6 py-4 space-y-4">
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              to={link.path}
+              onClick={() => setMenuOpen(false)}
+              className="text-gray-700 dark:text-gray-200 font-medium hover:text-purple-600 transition"
+            >
+              {link.name}
+            </Link>
+          ))}
+          <button
+            onClick={handleLogout}
+            className="text-left text-red-600 dark:text-red-400 font-medium hover:underline"
+          >
+            Logout
+          </button>
+        </nav>
+      </div>
+    </header>
   );
 }

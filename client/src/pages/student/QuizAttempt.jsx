@@ -1,7 +1,7 @@
 import { useEffect, useState,useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify"; 
-import axios from "axios";
+import axios from "../../utils/axiosConfig.js";
 export default function AttemptQuiz() {
   const { quizId } = useParams();
   const navigate = useNavigate();

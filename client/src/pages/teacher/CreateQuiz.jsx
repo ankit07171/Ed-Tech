@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import axios from "../../utils/axiosConfig.js";
 import { toast } from "react-toastify";
 
 export default function CreateQuiz() {

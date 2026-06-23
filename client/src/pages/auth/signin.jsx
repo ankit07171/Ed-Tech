@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from "../../utils/axiosConfig.js";
 import { toast } from "react-toastify";
 import { FaUser, FaEnvelope, FaLock, FaPhone } from "react-icons/fa";
 import { IoEye, IoEyeOff } from "react-icons/io5";
@@ -61,12 +61,11 @@ setContact(trimmedContact);
     setLoadingOtp(true);
     try {
       await axios.post("/api/auth/send-otp", { email: trimmedEmail });
-
       toast.success("OTP sent to email");
       setTimeLeft(300);
       setStep(2);
     } catch (err) {
-      toast.error(err.message || "OTP send failed");
+      toast.error(err.response?.data?.error || "OTP send failed");
     } finally {
       setLoadingOtp(false);
     }
@@ -95,21 +94,18 @@ const trimmedContact = contact.trim().replace(/^0+/, "");
         confirmPassword,
         role,
         userOtp: otp,
-      }, { withCredentials: true });
+      });
 
-      toast.success("Signup successful!");
-      
-      // Store token and user info from response
-      const token = res.data.token;
-      const userRole = res.data.user.role;
-      const userName = res.data.user.fullName;
+      const { token, user } = res.data;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("role", userRole);
-      localStorage.setItem("userName", userName);
+      localStorage.setItem("role", user.role);
+      localStorage.setItem("userName", user.fullName);
+      localStorage.setItem("userId", user._id);
+      localStorage.setItem("profilePic", user.profilePic || "");
 
-      // Navigate based on role
-      navigate(userRole === "student" ? "/student" : "/teacher");
+      toast.success("Signup successful!");
+      navigate(user.role === "student" ? "/student" : "/teacher", { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.error || "Signup failed");
     } finally {

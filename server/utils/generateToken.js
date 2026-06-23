@@ -7,13 +7,13 @@ const generateToken = (user, res) => {
     { expiresIn: "15d" }
   );
 
-  // Cookie settings for cross-origin
+  // Cookie: secure only in production so localhost works too
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",  // true in production
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",  // None for cross-origin
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     path: "/",
-    maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+    maxAge: 15 * 24 * 60 * 60 * 1000,
   };
 
   console.log("🍪 Setting cookie with options:", cookieOptions);

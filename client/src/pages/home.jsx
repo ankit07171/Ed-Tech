@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../utils/axiosConfig.js";
 
 const sliderImages = [
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlQMVHbSTbRz706LNvzALQH3O3MtGPcLSApA&s",

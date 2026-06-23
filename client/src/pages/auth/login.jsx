@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from "../../utils/axiosConfig.js";
 import { toast } from "react-toastify";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import "../../index.css";
@@ -13,28 +13,23 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     try {
-      const res = await axios.post(
-        "/api/auth/login",
-        { email, password },
-        { withCredentials: true }
-      );
-      toast.success("Logged in!"); 
+      const res = await axios.post("/api/auth/login", { email, password });
 
-      // Store token and user info from response
-      const token = res.data.token;
-      const role = res.data.user.role;
-      const name = res.data.user.fullName;
+      const { token, user } = res.data;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
-      localStorage.setItem("userName", name);
+      localStorage.setItem("role", user.role);
+      localStorage.setItem("userName", user.fullName);
+      localStorage.setItem("userId", user._id);
+      localStorage.setItem("profilePic", user.profilePic || "");
 
-      navigate(role === "student" ? "/student" : "/teacher");
- 
+      toast.success("Logged in!");
+      navigate(user.role === "student" ? "/student" : "/teacher", { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.error || "Login failed"); 
+      toast.error(err.response?.data?.error || "Login failed");
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../utils/axiosConfig.js";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 
@@ -24,14 +24,18 @@ export default function TeacherAttendance() {
       if (students.length === 0) return;
 
       try {
-        const res = await axios.get(`/api/attendance/${selectedDate}`, { withCredentials: true });
+        const res = await axios.get(`/api/attendance/${selectedDate}`);
         const map = {};
         res.data.records.forEach(r => { if (r.studentId && r.status) map[r.studentId] = r.status; });
-
         const finalAttendance = Object.fromEntries(students.map(s => [s._id, map[s._id] || "absent"]));
         setAttendance(finalAttendance);
       } catch (err) {
-        toast.error(err.response?.data?.error || "Failed to load attendance");
+        // 404 just means no attendance marked for this date yet — not an error
+        if (err.response?.status !== 404) {
+          toast.error("Failed to load attendance");
+        }
+        const reset = Object.fromEntries(students.map(s => [s._id, "absent"]));
+        setAttendance(reset);
       }
     };
 

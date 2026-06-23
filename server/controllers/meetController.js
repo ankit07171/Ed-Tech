@@ -29,10 +29,9 @@ export const createMeet = async (req, res) => {
 export const validateMeet = async (req, res) => {
   const { code } = req.body;
   try {
-    const meet = await Meet.findOne({ code });
-       
+    const meet = await Meet.findOne({ code }).populate("createdBy", "_id");
     if (!meet) return res.status(404).json({ error: "Meet not found" });
-    res.status(200).json({ valid: true });
+    res.status(200).json({ valid: true, teacherSocketId: null, meetId: meet._id, teacherUserId: meet.createdBy._id });
   } catch (err) {
     res.status(500).json({ error: "Failed to validate code" });
   }

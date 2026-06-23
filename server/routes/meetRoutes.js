@@ -5,7 +5,7 @@ import { restrictTo } from "../middleware/restrictTo.js";
 
 const router = express.Router();
 
-router.post("/create", protect,restrictTo("teacher"), createMeet);
-router.post("/join",protect, validateMeet);
+router.post("/create", protect, restrictTo("teacher"), createMeet);
+router.post("/join", protect, validateMeet); // student must be logged in
 
 export default router;

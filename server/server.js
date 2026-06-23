@@ -21,30 +21,34 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
-// CORS Configuration - explicit for cross-origin cookies
-const allowedOrigins = process.env.CLIENT_URL 
-  ? [process.env.CLIENT_URL]
-  : ["http://localhost:5173", "http://localhost:1845", "http://localhost:7171"];
+// CORS Configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:1845",
+  "http://localhost:7171",
+];
+
+// Add production frontend URL if set
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
 
 console.log("🔧 Allowed CORS origins:", allowedOrigins);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1 || !process.env.CLIENT_URL) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         console.log("❌ CORS blocked origin:", origin);
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["set-cookie"],
   })
 );
     

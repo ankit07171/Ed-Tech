@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../utils/axiosConfig.js";
 import { useParams } from "react-router-dom";
 
 export default function ViewAttempts() {

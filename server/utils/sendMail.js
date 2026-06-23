@@ -1,9 +1,8 @@
 import nodemailer from "nodemailer";
 
 const sendOTPEmail = async (email) => {
-  try {
-    
-  const otpSent = Math.floor(100000 + Math.random() * 900000); // returns 6-digit number
+  const otpSent = Math.floor(100000 + Math.random() * 900000);
+
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -11,7 +10,6 @@ const sendOTPEmail = async (email) => {
       pass: process.env.EMAIL_PASS,
     },
   });
-  await transporter.verify();
 
   const mailOptions = {
     from: `"QA Skills" <${process.env.EMAIL_USER}>`,
@@ -35,10 +33,6 @@ const sendOTPEmail = async (email) => {
 
   await transporter.sendMail(mailOptions);
   return otpSent;
-  
-  } catch (error) {
-    console.log(error.message);
-    
-  }
 };
- export default sendOTPEmail;
+
+export default sendOTPEmail;
