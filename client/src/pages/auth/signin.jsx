@@ -9,9 +9,9 @@ export default function Signin() {
   const navigate = useNavigate();
 
   // Already logged in
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
-  if (token && role) return <Navigate to={`/${role}`} replace />;
+  const savedToken = localStorage.getItem("token");
+  const savedRole = localStorage.getItem("role");
+  if (savedToken && savedRole) return <Navigate to={`/${savedRole}`} replace />;
 
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
