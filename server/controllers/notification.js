@@ -1,6 +1,7 @@
 import Notification from "../models/notifyModel.js";
 import User from "../models/userModel.js";
- 
+import { getIO } from "../socket/ioInstance.js";
+
 // No need to read teacherId from body anymore
 export const createNotification = async (req, res) => {
   try {
@@ -18,10 +19,22 @@ export const createNotification = async (req, res) => {
       createdBy: teacher._id,
     });
 
+    // Push it live to everyone connected right now — this is what powers the
+    // instant alert/badge on the bell icon instead of people only finding out
+    // on their next page refresh.
+    const populated = await newNote.populate("createdBy", "fullName");
+    getIO()?.emit("new-notification", {
+      _id: populated._id,
+      title: populated.title,
+      message: populated.message,
+      createdAt: populated.createdAt,
+      createdBy: { fullName: populated.createdBy?.fullName || "Admin" },
+    });
+
     res.status(201).json({ message: "Notification created", notification: newNote });
   } catch (err) {
     console.error("Notification create error:", err);
-    res.status(500).json({ error: "Failed to create notification", err });
+    res.status(500).json({ error: "Failed to create notification" });
   }
 };
 

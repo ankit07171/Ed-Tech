@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
-import axios from "../../utils/axiosConfig.js";
+import { useEffect } from "react";
+import { useNotifications } from "../../context/NotificationContext.jsx";
 
 export default function StudentNotification() {
-  const [notes, setNotes] = useState([]);
+  const { notifications, refresh, markAllSeen } = useNotifications() || {};
 
   useEffect(() => {
-    const fetch = async () => {
-      const res = await axios.get("/api/notifications/all");
-      setNotes(res.data);
-    };
-    fetch();
-  }, []);
+    refresh?.();
+  }, [refresh]);
+
+  // Opening this page is what "views" the alert — clear the unread badge
+  // now, same moment the notifications are on screen.
+  useEffect(() => {
+    markAllSeen?.();
+  }, [markAllSeen]);
+
+  const notes = notifications || [];
 
   return (
     <div className="max-w-3xl mx-auto px-6 pt-20">

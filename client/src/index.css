@@ -1,7 +1,24 @@
-/* @import "tailwindcss"; */
-/* styles.css */
-/* index.css */ 
+/* index.css */
 @import "tailwindcss";
+
+/*
+ * Tailwind v4 defaults `dark:` to the `prefers-color-scheme` media query.
+ * This app toggles a `.dark` class on <html> instead (see ThemeContext.jsx),
+ * so we need to tell Tailwind to key the `dark:` variant off that class.
+ * Without this line the theme toggle button has NO visual effect.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-width: thin;
+}
 .input {
   width: 100%;
   padding: 12px 40px; /* Add padding for icon space */

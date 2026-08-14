@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import http from "http";
@@ -13,6 +14,8 @@ import quizRoutes from "./routes/quizRoutes.js";
 import noteRoutes from "./routes/noteRoute.js";
 import meetRoutes from "./routes/meetRoutes.js";
 import { setupMeetSocket } from "./socket/meetSocket.js";
+import { setIO } from "./socket/ioInstance.js";
+import { sanitizeInput, apiLimiter, authLimiter } from "./middleware/security.js";
 
 dotenv.config();
 
@@ -54,18 +57,33 @@ app.use(
     
 app.use(express.json());
 app.use(cookieParser());
- 
+app.use(sanitizeInput);
+
+// Security headers. CSP is left on report-only-ish defaults off because this
+// API serves a separate SPA (no inline HTML rendered here) — the frontend
+// build should set its own CSP if desired.
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+
 app.use("/uploads", express.static("uploads"));
- 
-app.use("/api/auth", authRoutes);
-app.use("/api/notes", noteRoutes);
-app.use("/api/attendance", attendanceRoute);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/quizzes", quizRoutes);
-app.use("/api/meet", meetRoutes);
+
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/notes", apiLimiter, noteRoutes);
+app.use("/api/attendance", apiLimiter, attendanceRoute);
+app.use("/api/notifications", apiLimiter, notificationRoutes);
+app.use("/api/quizzes", apiLimiter, quizRoutes);
+app.use("/api/meet", apiLimiter, meetRoutes);
  
 app.get("/", (req, res) => {
   res.send("Server is Live ✅");
+});
+
+// Centralized error handler — keeps error responses JSON (e.g. multer file
+// filter/size rejections) instead of falling through to Express's default
+// HTML error page.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || 400;
+  res.status(status).json({ error: err.message || "Something went wrong" });
 });
  
 const io = new Server(server, {
@@ -77,6 +95,7 @@ const io = new Server(server, {
 });
 
 setupMeetSocket(io);
+setIO(io);
  
 const startServer = async () => {
   try {

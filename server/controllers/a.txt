@@ -1,0 +1,847 @@
+import { nanoid } from "nanoid";
+import Meet from "../models/meetModel.js";
+
+export const createMeet = async (req, res) => {
+  const teacherId = req.user.id;
+
+  try {
+    let code;
+    let exists = true;
+    while (exists) {
+      code = nanoid(6).toUpperCase();  
+      const existing = await Meet.findOne({ code });
+      if (!existing) exists = false;
+    }
+
+    const meet = await Meet.create({
+      code,
+      createdBy: teacherId,
+    });
+
+    res.status(201).json({ message: "Meet created", code }); // 👈 return code
+  } catch (err) {
+    console.error("Create Meet Error:", err);
+    res.status(500).json({ error: "Failed to create meet" });
+  }
+};
+
+
+export const validateMeet = async (req, res) => {
+  const { code } = req.body;
+  try {
+    const meet = await Meet.findOne({ code }).populate("createdBy", "_id");
+    if (!meet) return res.status(404).json({ error: "Meet not found" });
+    res.status(200).json({ valid: true, teacherSocketId: null, meetId: meet._id, teacherUserId: meet.createdBy._id });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to validate code" });
+  }
+};
+import express from "express";
+import { createMeet, validateMeet } from "../controllers/meetController.js";
+import protect from "../middleware/protectRoute.js";
+import { restrictTo } from "../middleware/restrictTo.js";
+
+const router = express.Router();
+
+router.post("/create", protect, restrictTo("teacher"), createMeet);
+router.post("/join", protect, validateMeet); // student must be logged in
+
+export default router;
+ 
+ import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import http from "http";
+import { Server } from "socket.io";
+
+import mongoConnect from "./db/mongooseConnnection.js";
+import authRoutes from "./routes/authRoutes.js";
+import attendanceRoute from "./routes/attendanceRoute.js";
+import notificationRoutes from "./routes/notifyRoutes.js";
+import quizRoutes from "./routes/quizRoutes.js";
+import noteRoutes from "./routes/noteRoute.js";
+import meetRoutes from "./routes/meetRoutes.js";
+import { setupMeetSocket } from "./socket/meetSocket.js";
+
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app);
+
+const PORT = process.env.PORT || 5000;
+
+// CORS Configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:1845",
+  "http://localhost:7171",
+];
+
+// Add production frontend URL if set
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
+console.log("🔧 Allowed CORS origins:", allowedOrigins);
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("❌ CORS blocked origin:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+    
+app.use(express.json());
+app.use(cookieParser());
+ 
+app.use("/uploads", express.static("uploads"));
+ 
+app.use("/api/auth", authRoutes);
+app.use("/api/notes", noteRoutes);
+app.use("/api/attendance", attendanceRoute);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/quizzes", quizRoutes);
+app.use("/api/meet", meetRoutes);
+ 
+app.get("/", (req, res) => {
+  res.send("Server is Live ✅");
+});
+ 
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+setupMeetSocket(io);
+ 
+const startServer = async () => {
+  try {
+    await mongoConnect();
+    console.log("✅ MongoDB connected");
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Server startup failed:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
+export const restrictTo = (requiredRole) => {
+  return (req, res, next) => {
+    if (!req.user || req.user.role !== requiredRole) {
+      return res.status(403).json({ error: "Forbidden - Insufficient permissions" });
+    }
+    next();
+  };
+};
+import jwt from "jsonwebtoken";
+import User from "../models/userModel.js";
+
+const protect = async (req, res, next) => {
+  try {
+    // Accept token from cookie OR Authorization header
+    let token = req.cookies.jwt;
+
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) return res.status(401).json({ error: "Unauthorized - No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) return res.status(401).json({ error: "Unauthorized - Invalid token" });
+
+    const user = await User.findById(decoded.userId).select("-password");
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    req.user = user;
+    next();
+  } catch (err) {
+    res.status(401).json({ error: "Unauthorized - Token failed" });
+  }
+};
+
+export default protect;
+// roomUsers[code] = [{ socketId, role, name }]
+const roomUsers = {};
+
+export const setupMeetSocket = (io) => {
+  io.on("connection", (socket) => {
+
+    // Teacher or student joins a room
+    socket.on("join-room", ({ code, role, name }) => {
+      if (!code) return;
+      socket.join(code);
+
+      if (!roomUsers[code]) roomUsers[code] = [];
+      // Remove any previous entry for this socket
+      roomUsers[code] = roomUsers[code].filter((u) => u.socketId !== socket.id);
+      roomUsers[code].push({ socketId: socket.id, role, name });
+
+      // When student joins, notify teacher
+      if (role === "student") {
+        const teacher = roomUsers[code].find((u) => u.role === "teacher");
+        if (teacher) {
+          io.to(teacher.socketId).emit("user-joined", { userId: socket.id, name });
+          io.to(teacher.socketId).emit("user-message", { type: "join", name });
+        }
+      }
+
+      // When teacher joins, tell them any students already in room
+      if (role === "teacher") {
+        const students = roomUsers[code].filter((u) => u.role === "student");
+        students.forEach((s) => {
+          socket.emit("user-joined", { userId: s.socketId, name: s.name });
+        });
+      }
+    });
+
+    // Get teacher socket ID for a room (student needs this to send ICE/answer)
+    socket.on("get-teacher-socket", ({ code }) => {
+      const teacher = roomUsers[code]?.find((u) => u.role === "teacher");
+      socket.emit("teacher-socket", { teacherSocketId: teacher?.socketId || null });
+    });
+
+    // Relay WebRTC signals between peers
+    socket.on("signal", ({ to, signal }) => {
+      io.to(to).emit("signal", { from: socket.id, signal });
+    });
+
+    // End meet for everyone — only teacher should emit this
+    socket.on("end-meet", ({ code }) => {
+      io.to(code).emit("meet-ended");
+      // Clean up room
+      if (roomUsers[code]) delete roomUsers[code];
+    });
+
+    socket.on("leave-room", ({ code }) => {
+      handleLeave(socket, io, code);
+    });
+
+    socket.on("disconnect", () => {
+      // Find which room this socket was in
+      for (const code of Object.keys(roomUsers)) {
+        const user = roomUsers[code]?.find((u) => u.socketId === socket.id);
+        if (user) {
+          handleLeave(socket, io, code);
+          break;
+        }
+      }
+    });
+  });
+};
+
+function handleLeave(socket, io, code) {
+  const users = roomUsers[code];
+  if (!users) return;
+
+  const user = users.find((u) => u.socketId === socket.id);
+  roomUsers[code] = users.filter((u) => u.socketId !== socket.id);
+
+  if (!user) return;
+
+  if (user.role === "teacher") {
+    io.to(code).emit("teacher-left");
+    delete roomUsers[code];
+  } else {
+    const teacher = roomUsers[code]?.find((u) => u.role === "teacher");
+    if (teacher) {
+      io.to(teacher.socketId).emit("user-left", { userId: socket.id, name: user.name });
+      io.to(teacher.socketId).emit("user-message", { type: "leave", name: user.name });
+    }
+  }
+
+  socket.leave(code);
+}
+
+
+//frontend
+import { useEffect, useRef, useState } from "react";
+import socket from "../../socket/socket";
+
+export default function StudentJoinMeet() {
+  const [code, setCode] = useState("");
+  const [joined, setJoined] = useState(false);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+  const [statusMsg, setStatusMsg] = useState("");
+
+  const studentName = localStorage.getItem("userName") || "Student";
+
+  const localStreamRef = useRef(null);
+  const pcRef = useRef(null);
+  const iceQueue = useRef([]);
+  const teacherSocketRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const codeRef = useRef("");
+
+  const setLocalStream = (s) => {
+    localStreamRef.current = s;
+    if (localVideoRef.current) localVideoRef.current.srcObject = s;
+  };
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  useEffect(() => {
+    const onTeacherSocket = ({ teacherSocketId }) => {
+      if (teacherSocketId) teacherSocketRef.current = teacherSocketId;
+    };
+
+    const onSignal = async ({ from, signal }) => {
+      const pc = pcRef.current;
+      if (!pc) {
+        if (signal.type === "ice") iceQueue.current.push(signal.candidate);
+        return;
+      }
+      if (signal.type === "offer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("signal", { to: from, signal: { type: "answer", answer } });
+        teacherSocketRef.current = from;
+        for (const c of iceQueue.current) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {}
+        }
+        iceQueue.current = [];
+      } else if (signal.type === "ice") {
+        try { await pc.addIceCandidate(new RTCIceCandidate(signal.candidate)); }
+        catch { iceQueue.current.push(signal.candidate); }
+      }
+    };
+
+    const onMeetEnded = () => {
+      showMsg("Teacher ended the meet.");
+      setTimeout(() => cleanup(), 1500);
+    };
+
+    const onTeacherLeft = () => {
+      showMsg("Teacher left the meet.");
+      setTimeout(() => cleanup(), 1500);
+    };
+
+    socket.on("teacher-socket", onTeacherSocket);
+    socket.on("signal", onSignal);
+    socket.on("meet-ended", onMeetEnded);
+    socket.on("teacher-left", onTeacherLeft);
+
+    return () => {
+      socket.off("teacher-socket", onTeacherSocket);
+      socket.off("signal", onSignal);
+      socket.off("meet-ended", onMeetEnded);
+      socket.off("teacher-left", onTeacherLeft);
+    };
+  }, []);
+
+  const showMsg = (msg) => {
+    setStatusMsg(msg);
+    setTimeout(() => setStatusMsg(""), 4000);
+  };
+
+  const joinMeet = async () => {
+    const trimCode = code.trim().toUpperCase();
+    if (!trimCode) return alert("Enter a meet code");
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_BASE_URL || "http://localhost:7171"}/api/meet/join`,
+        { method: "POST", headers, body: JSON.stringify({ code: trimCode }) }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.valid) return alert(data.error || "Invalid meet code");
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setLocalStream(stream);
+      codeRef.current = trimCode;
+
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+      pcRef.current = pc;
+
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      pc.ontrack = (e) => setRemoteStream(e.streams[0]);
+      pc.onicecandidate = (e) => {
+        if (e.candidate && teacherSocketRef.current)
+          socket.emit("signal", { to: teacherSocketRef.current, signal: { type: "ice", candidate: e.candidate } });
+      };
+
+      socket.emit("join-room", { code: trimCode, role: "student", name: studentName });
+      socket.emit("get-teacher-socket", { code: trimCode });
+
+      setJoined(true);
+      setMicOn(true);
+      setCamOn(true);
+      showMsg("Joined! Waiting for teacher's stream...");
+    } catch (err) {
+      alert("Failed to join. Check your meet code and try again.");
+      console.error(err);
+    }
+  };
+
+  const toggleMic = () => {
+    const track = localStreamRef.current?.getAudioTracks()[0];
+    if (track) { track.enabled = !track.enabled; setMicOn(track.enabled); }
+  };
+
+  const toggleCam = () => {
+    const track = localStreamRef.current?.getVideoTracks()[0];
+    if (track) { track.enabled = !track.enabled; setCamOn(track.enabled); }
+  };
+
+  const cleanup = () => {
+    socket.emit("leave-room", { code: codeRef.current });
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    pcRef.current?.close();
+    pcRef.current = null;
+    localStreamRef.current = null;
+    teacherSocketRef.current = null;
+    setJoined(false);
+    setRemoteStream(null);
+    setCode("");
+  };
+
+  return (
+    <div className="p-6 pt-20 min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      {!joined ? (
+        <div className="space-y-4 max-w-md mx-auto">
+          <h2 className="text-xl font-bold text-purple-700 dark:text-purple-300">Join a Meet</h2>
+          {statusMsg && <p className="text-sm text-green-600 dark:text-green-400">{statusMsg}</p>}
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="Enter meet code e.g. ABC123"
+            className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <button
+            onClick={joinMeet}
+            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+          >
+            Join Meet
+          </button>
+        </div>
+      ) : (
+        // Full screen layout: teacher stream takes entire space, student is a PiP corner
+        <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ height: "calc(100vh - 120px)" }}>
+          {/* Teacher stream — full screen */}
+          {remoteStream ? (
+            <video
+              ref={remoteVideoRef}
+              autoPlay playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center text-gray-400">
+                <div className="text-5xl mb-3">📡</div>
+                <p className="text-lg">Waiting for teacher's stream...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Status message */}
+          {statusMsg && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-70 text-white text-sm px-4 py-2 rounded-full">
+              {statusMsg}
+            </div>
+          )}
+
+          {/* Self (student) PiP — bottom right corner */}
+          <div className="absolute bottom-16 right-4 w-36 sm:w-48 rounded-lg overflow-hidden shadow-lg border-2 border-white border-opacity-30">
+            <video
+              ref={localVideoRef}
+              autoPlay playsInline muted
+              className="w-full object-cover"
+            />
+            {!camOn && (
+              <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                <span className="text-white text-xs">Cam Off</span>
+              </div>
+            )}
+            <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+              {studentName}
+            </div>
+          </div>
+
+          {/* Controls bar — fixed at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 flex gap-2 justify-center py-2 px-4 bg-black bg-opacity-60 backdrop-blur-sm">
+            <button
+              onClick={toggleMic}
+              className={`px-4 py-2 rounded text-white text-sm transition ${micOn ? "bg-yellow-500 hover:bg-yellow-600" : "bg-gray-600 hover:bg-gray-700"}`}
+            >
+              {micOn ? "🎙 Mute" : "🎙 Unmute"}
+            </button>
+            <button
+              onClick={toggleCam}
+              className={`px-4 py-2 rounded text-white text-sm transition ${camOn ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-600 hover:bg-gray-700"}`}
+            >
+              {camOn ? "📷 Cam Off" : "📷 Cam On"}
+            </button>
+            <button
+              onClick={cleanup}
+              className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              Leave Meet
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+import { useEffect, useRef, useState } from "react";
+import axios from "../../utils/axiosConfig.js";
+import socket from "../../socket/socket";
+
+export default function TeacherMeet() {
+  const [code, setCode] = useState(localStorage.getItem("meetCode") || "");
+  const [started, setStarted] = useState(false);
+  const [remoteStreams, setRemoteStreams] = useState({});
+  const [names, setNames] = useState({});
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+  const [sharing, setSharing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+
+  const teacherName = localStorage.getItem("userName") || "Teacher";
+
+  // Use refs for everything that needs to be accessed inside socket callbacks
+  const streamRef = useRef(null);
+  const peerRefs = useRef({});
+  const iceQueue = useRef({});
+  const localVideoRef = useRef(null);
+  const codeRef = useRef(code);
+
+  useEffect(() => { codeRef.current = code; }, [code]);
+
+  // Attach local stream to video element whenever stream ref changes
+  const setStream = (s) => {
+    streamRef.current = s;
+    if (localVideoRef.current) localVideoRef.current.srcObject = s;
+  };
+
+  // Socket listeners — run once, use refs inside
+  useEffect(() => {
+    const onUserJoined = async ({ userId, name }) => {
+      const s = streamRef.current;
+      if (!s) return;
+      setNames((prev) => ({ ...prev, [userId]: name }));
+
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+      peerRefs.current[userId] = pc;
+
+      s.getTracks().forEach((track) => pc.addTrack(track, s));
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate)
+          socket.emit("signal", { to: userId, signal: { type: "ice", candidate: e.candidate } });
+      };
+
+      pc.ontrack = (e) => {
+        setRemoteStreams((prev) => ({ ...prev, [userId]: e.streams[0] }));
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit("signal", { to: userId, signal: { type: "offer", offer } });
+
+      // Flush queued ICE
+      (iceQueue.current[userId] || []).forEach(async (c) => {
+        try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {}
+      });
+      delete iceQueue.current[userId];
+    };
+
+    const onSignal = async ({ from, signal }) => {
+      const pc = peerRefs.current[from];
+      if (signal.type === "answer" && pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
+      } else if (signal.type === "ice") {
+        if (pc) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(signal.candidate)); } catch {}
+        } else {
+          if (!iceQueue.current[from]) iceQueue.current[from] = [];
+          iceQueue.current[from].push(signal.candidate);
+        }
+      }
+    };
+
+    const onUserLeft = ({ userId, name }) => {
+      peerRefs.current[userId]?.close();
+      delete peerRefs.current[userId];
+      setRemoteStreams((prev) => { const c = { ...prev }; delete c[userId]; return c; });
+      setNames((prev) => { const c = { ...prev }; delete c[userId]; return c; });
+      showMsg(`👋 ${name} left`);
+    };
+
+    socket.on("user-joined", onUserJoined);
+    socket.on("signal", onSignal);
+    socket.on("user-left", onUserLeft);
+
+    return () => {
+      socket.off("user-joined", onUserJoined);
+      socket.off("signal", onSignal);
+      socket.off("user-left", onUserLeft);
+    };
+  }, []);
+
+  const showMsg = (msg) => {
+    setStatusMsg(msg);
+    setTimeout(() => setStatusMsg(""), 3000);
+  };
+
+  const generateCode = async () => {
+    try {
+      const res = await axios.post("/api/meet/create");
+      const newCode = res.data.code;
+      Object.values(peerRefs.current).forEach((pc) => pc.close());
+      peerRefs.current = {};
+      iceQueue.current = {};
+      setRemoteStreams({});
+      setNames({});
+      setStarted(false);
+      setStream(null);
+      setCode(newCode);
+      localStorage.setItem("meetCode", newCode);
+    } catch {
+      alert("Failed to generate code. Are you logged in?");
+    }
+  };
+
+  const startMeet = async () => {
+    if (!code) return alert("Generate a code first");
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setStream(s);
+      setStarted(true);
+      setMicOn(true);
+      setCamOn(true);
+      socket.emit("join-room", { code, role: "teacher", name: teacherName });
+    } catch {
+      alert("Could not access camera/microphone. Please allow permissions.");
+    }
+  };
+
+  const toggleMic = () => {
+    const track = streamRef.current?.getAudioTracks()[0];
+    if (track) {
+      track.enabled = !track.enabled;
+      setMicOn(track.enabled);
+    }
+  };
+
+  const toggleCam = () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      track.enabled = !track.enabled;
+      setCamOn(track.enabled);
+    }
+  };
+
+  const shareScreen = async () => {
+    try {
+      const display = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = display.getVideoTracks()[0];
+      Object.values(peerRefs.current).forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) sender.replaceTrack(screenTrack);
+      });
+      screenTrack.onended = stopShare;
+      setSharing(true);
+    } catch {
+      alert("Cannot share screen.");
+    }
+  };
+
+  const stopShare = async () => {
+    try {
+      const cam = await navigator.mediaDevices.getUserMedia({ video: true });
+      const camTrack = cam.getVideoTracks()[0];
+      Object.values(peerRefs.current).forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) sender.replaceTrack(camTrack);
+      });
+      // Swap into streamRef too so local preview updates
+      const oldStream = streamRef.current;
+      const newStream = new MediaStream([
+        camTrack,
+        ...(oldStream?.getAudioTracks() || []),
+      ]);
+      setStream(newStream);
+      setSharing(false);
+    } catch {}
+  };
+
+  // End meet for EVERYONE — teacher only
+  const endMeet = () => {
+    if (!window.confirm("End meet for everyone?")) return;
+    socket.emit("end-meet", { code });
+    cleanupAndReset();
+  };
+
+  // Teacher leaves without ending for others
+  const leaveMeet = () => {
+    socket.emit("leave-room", { code });
+    cleanupAndReset();
+  };
+
+  const cleanupAndReset = () => {
+    Object.values(peerRefs.current).forEach((pc) => pc.close());
+    peerRefs.current = {};
+    iceQueue.current = {};
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    setStream(null);
+    localStorage.removeItem("meetCode");
+    setStarted(false);
+    setRemoteStreams({});
+    setNames({});
+    setCode("");
+  };
+
+  const count = 1 + Object.keys(remoteStreams).length;
+
+  // Dynamic grid: fills viewport height minus controls bar
+  // 1 person → full, 2 → side by side, 3-4 → 2x2, 5-6 → 2x3, 7-9 → 3x3
+  const getGridClass = (n) => {
+    if (n === 1) return "grid-cols-1";
+    if (n === 2) return "grid-cols-2";
+    if (n <= 4) return "grid-cols-2";
+    if (n <= 6) return "grid-cols-3";
+    return "grid-cols-3 xl:grid-cols-4";
+  };
+
+  const allParticipants = [
+    { id: "self", name: `${teacherName} (You)`, isLocal: true },
+    ...Object.entries(remoteStreams).map(([id, s]) => ({ id, name: names[id] || "Student", stream: s })),
+  ];
+
+  return (
+    <div className="p-6 pt-20 bg-white dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
+      <h2 className="text-xl font-bold mb-1">
+        Meet Code:{" "}
+        <span className="font-mono text-purple-600 select-all">{code || "—"}</span>
+        {code && (
+          <button
+            onClick={() => { navigator.clipboard.writeText(code); showMsg("Code copied!"); }}
+            className="ml-3 text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 transition"
+          >
+            Copy
+          </button>
+        )}
+      </h2>
+
+      {statusMsg && <p className="mt-1 mb-3 text-sm text-green-600 dark:text-green-400 font-medium">{statusMsg}</p>}
+
+      {!started ? (
+        <div className="flex gap-4 mt-4">
+          <button onClick={generateCode} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Generate Code
+          </button>
+          <button
+            onClick={startMeet}
+            disabled={!code}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            Start Meet
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col h-[calc(100vh-80px)]">
+          {/* Video grid — fills available height */}
+          <div className={`grid ${getGridClass(count)} gap-2 flex-1 overflow-hidden p-2`}>
+            {allParticipants.map((p) => (
+              <div key={p.id} className="relative bg-black rounded-lg overflow-hidden flex flex-col">
+                {p.isLocal ? (
+                  <video
+                    ref={localVideoRef}
+                    autoPlay playsInline muted
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    ref={(el) => { if (el) el.srcObject = p.stream; }}
+                    autoPlay playsInline
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                {/* Camera off overlay for self */}
+                {p.isLocal && !camOn && (
+                  <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                    <span className="text-white text-sm">📷 Camera Off</span>
+                  </div>
+                )}
+                {/* Name label */}
+                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-0.5 rounded">
+                  {p.name}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Controls bar */}
+          <div className="flex flex-wrap gap-2 justify-center py-3 px-4 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <button onClick={sharing ? stopShare : shareScreen} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">
+              {sharing ? "Stop Share" : "Share Screen"}
+            </button>
+            <button onClick={toggleMic} className={`px-4 py-2 text-white text-sm rounded transition ${micOn ? "bg-yellow-500 hover:bg-yellow-600" : "bg-gray-500 hover:bg-gray-600"}`}>
+              {micOn ? "🎙 Mute" : "🎙 Unmute"}
+            </button>
+            <button onClick={toggleCam} className={`px-4 py-2 text-white text-sm rounded transition ${camOn ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 hover:bg-gray-600"}`}>
+              {camOn ? "📷 Cam Off" : "📷 Cam On"}
+            </button>
+            <button onClick={leaveMeet} className="px-4 py-2 bg-orange-500 text-white text-sm rounded hover:bg-orange-600">
+              Leave
+            </button>
+            <button onClick={endMeet} className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 font-semibold">
+              End Meet for All
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+import { io } from "socket.io-client";
+const socket = io(import.meta.env.VITE_BASE_URL || "http://localhost:7171");
+export default socket;
+import axios from "axios";
+
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_BASE_URL || "http://localhost:7171",
+  withCredentials: true,
+});
+
+// Attach token from localStorage to every request
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default instance;

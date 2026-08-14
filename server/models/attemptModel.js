@@ -13,6 +13,12 @@ const attemptSchema = new mongoose.Schema(
     ],
     score: { type: Number, required: true },
     timeSpentInSeconds: { type: Number, required: true },
+    proctoring: {
+      tabSwitches: { type: Number, default: 0 },
+      fullscreenExits: { type: Number, default: 0 },
+      blurCount: { type: Number, default: 0 },
+      autoSubmitted: { type: Boolean, default: false },
+    },
   },
   { timestamps: true }
 );

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import { useTheme } from "./context/ThemeContext.jsx";
 
 
 // Public Pages
@@ -46,64 +45,63 @@ function SmartRedirect() {
   return <Navigate to="/login" replace />;
 }
 
-export default function App() {  const { isDark } = useTheme();
-
+export default function App() {
+  // Theme (light/dark) is applied globally on <html> by ThemeProvider,
+  // so nothing theme-related needs to happen here.
   return (
-    <div className={isDark ? "dark" : ""}>
-      <Router>
-        <Routes>
-          <Route element={<AuthLayout />}>
-            <Route path="/" element={<Base />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signin />} />
-            <Route path="/student/logout" element={<Logout />} />
-            <Route path="/teacher/logout" element={<Logout />} />
-          </Route>
+    <Router>
+      <Routes>
+        <Route element={<AuthLayout />}>
+          <Route path="/" element={<Base />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signin />} />
+          <Route path="/student/logout" element={<Logout />} />
+          <Route path="/teacher/logout" element={<Logout />} />
+        </Route>
 
-          <Route
-            path="/student"
-            element={
-              <ProtectedRoute expectedRole="student">
-                <StudentLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Home />} />
-            <Route path="about" element={<About />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="notification" element={<StudentNotification />} />
-            <Route path="quiz" element={<QuizList />} />
-            <Route path="quiz/:quizId" element={<AttemptQuiz />} />
-            <Route path="quiz/review/:quizId" element={<QuizReview />} />
-            <Route path="notes" element={<StudentNotesView />} />
-            <Route path="meet" element={<StudentMeet />} />
-          </Route>
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute expectedRole="student">
+              <StudentLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Home />} />
+          <Route path="about" element={<About />} />
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="notification" element={<StudentNotification />} />
+          <Route path="quiz" element={<QuizList />} />
+          <Route path="quiz/:quizId" element={<AttemptQuiz />} />
+          <Route path="quiz/review/:quizId" element={<QuizReview />} />
+          <Route path="notes" element={<StudentNotesView />} />
+          <Route path="meet" element={<StudentMeet />} />
+        </Route>
 
-          <Route
-            path="/teacher"
-            element={
-              <ProtectedRoute expectedRole="teacher">
-                <TeacherLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Home />} />
-            <Route path="about" element={<About />} />
-            <Route path="attendance" element={<TeacherAttendance />} />
-            <Route path="notification" element={<TeacherNotification />} />
-            <Route path="quiz/create" element={<CreateQuiz />} />
-            <Route path="quiz" element={<TeacherQuizDashboard />} />
-            <Route path="quiz/all" element={<AllQuizzes />} />
-            <Route path="quiz/attempts/:quizId" element={<ViewAttempts />} />
-            <Route path="notes" element={<TeacherUploadNotes />} />
-            <Route path="meet" element={<TeacherMeet />} />
-          </Route>
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute expectedRole="teacher">
+              <TeacherLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Home />} />
+          <Route path="about" element={<About />} />
+          <Route path="attendance" element={<TeacherAttendance />} />
+          <Route path="notification" element={<TeacherNotification />} />
+          <Route path="quiz/create" element={<CreateQuiz />} />
+          <Route path="quiz" element={<TeacherQuizDashboard />} />
+          <Route path="quiz/all" element={<AllQuizzes />} />
+          <Route path="quiz/attempts/:quizId" element={<ViewAttempts />} />
+          <Route path="notes" element={<TeacherUploadNotes />} />
+          <Route path="meet" element={<TeacherMeet />} />
+        </Route>
 
-          <Route path="*" element={<SmartRedirect />} />
-        </Routes>
+        <Route path="*" element={<SmartRedirect />} />
+      </Routes>
 
-        <ToastContainer position="top-right" autoClose={3000} />
-      </Router>
-    </div>
+      <ToastContainer position="top-right" autoClose={3000} />
+    </Router>
   );
 }

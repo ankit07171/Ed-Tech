@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
+import ThemeToggleButton from "../../components/ToggleButton.jsx";
+import { useNotifications } from "../../context/NotificationContext.jsx";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications() || {};
 
   const userName = localStorage.getItem("userName") || "Student";
 
@@ -48,11 +51,17 @@ export default function Header() {
             <Link
               key={link.name}
               to={link.path}
-              className="text-gray-700 dark:text-gray-200 font-medium hover:text-purple-600 dark:hover:text-purple-400 transition"
+              className="relative text-gray-700 dark:text-gray-200 font-medium hover:text-purple-600 dark:hover:text-purple-400 transition"
             >
               {link.name}
+              {link.name === "Notification" && unreadCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Link>
           ))}
+          <ThemeToggleButton />
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen((p) => !p)}
@@ -76,8 +85,13 @@ export default function Header() {
         {/* Mobile Hamburger */}
         <div className="md:hidden">
           {!menuOpen && (
-            <button onClick={() => setMenuOpen(true)} className="text-2xl text-purple-700 dark:text-purple-300">
+            <button onClick={() => setMenuOpen(true)} className="relative text-2xl text-purple-700 dark:text-purple-300">
               <FiMenu />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -101,11 +115,20 @@ export default function Header() {
               key={link.name}
               to={link.path}
               onClick={() => setMenuOpen(false)}
-              className="text-gray-700 dark:text-gray-200 font-medium hover:text-purple-600 transition"
+              className="relative text-gray-700 dark:text-gray-200 font-medium hover:text-purple-600 transition"
             >
               {link.name}
+              {link.name === "Notification" && unreadCount > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Link>
           ))}
+          <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Theme</span>
+            <ThemeToggleButton />
+          </div>
           <button
             onClick={handleLogout}
             className="text-left text-red-600 dark:text-red-400 font-medium hover:underline"

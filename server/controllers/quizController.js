@@ -77,28 +77,54 @@ export const getAllQuizzes = async (req, res) => {
 
 // Submit a quiz attempt
 export const submitQuiz = async (req, res) => {
-  const { quizId, answers, timeSpentInSeconds } = req.body;
+  const { quizId, answers, timeSpentInSeconds, proctoring } = req.body;
   const studentId = req.user.id;
   try {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+
+    // Guard against duplicate/replayed submissions — without this a student
+    // could resubmit repeatedly (e.g. after seeing correct answers in the
+    // review screen) and inflate their attempt history.
+    const already = await QuizAttempt.findOne({ quiz: quizId, student: studentId });
+    if (already) {
+      return res.status(409).json({ error: "You have already attempted this quiz", score: already.score });
+    }
+
     let score = 0;
     const formattedAnswers = quiz.questions.map((q, i) => {
-      const selected = answers[i];
+      const selected = answers?.[i];
       if (selected === q.correctAnswer) score++;
       return { question: q.question, selected, correctAnswer: q.correctAnswer };
     });
-    await QuizAttempt.create({ quiz: quizId, student: studentId, answers: formattedAnswers, score, timeSpentInSeconds });
+    await QuizAttempt.create({
+      quiz: quizId,
+      student: studentId,
+      answers: formattedAnswers,
+      score,
+      timeSpentInSeconds,
+      proctoring: {
+        tabSwitches: Number(proctoring?.tabSwitches) || 0,
+        fullscreenExits: Number(proctoring?.fullscreenExits) || 0,
+        blurCount: Number(proctoring?.blurCount) || 0,
+        autoSubmitted: !!proctoring?.autoSubmitted,
+      },
+    });
     res.status(200).json({ message: "Submitted", score });
   } catch (err) {
     res.status(500).json({ error: "Failed to submit quiz" });
   }
 };
 
-// Get all attempts of a specific quiz
+// Get all attempts of a specific quiz (teacher who owns the quiz only)
 export const getQuizAttempts = async (req, res) => {
   const { quizId } = req.params;
   try {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+    if (quiz.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
     const attempts = await QuizAttempt.find({ quiz: quizId }).populate("student", "fullName email");
     res.status(200).json(attempts);
   } catch (err) {
@@ -125,12 +151,24 @@ export const getStudentQuizAttempt = async (req, res) => {
   }
 };
 
-// Get full quiz by ID
+// Get full quiz by ID.
+// SECURITY: students must never receive `correctAnswer` — otherwise the
+// answer key is sitting in the network tab before they even submit.
 export const getQuizById = async (req, res) => {
   const { quizId } = req.params;
   try {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+
+    if (req.user.role === "student") {
+      const sanitized = {
+        _id: quiz._id,
+        title: quiz.title,
+        questions: quiz.questions.map((q) => ({ question: q.question, options: q.options })),
+      };
+      return res.status(200).json(sanitized);
+    }
+
     res.status(200).json(quiz);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch quiz" });

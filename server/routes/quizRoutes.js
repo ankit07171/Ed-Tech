@@ -21,7 +21,7 @@ router.post("/create", protect, restrictTo("teacher"), createQuiz);
 router.put("/update/:quizId", protect, restrictTo("teacher"), updateQuiz);
 router.delete("/delete/:quizId", protect, restrictTo("teacher"), deleteQuiz);
 router.post("/submit", protect, restrictTo("student"), submitQuiz);
-router.get("/attempts/:quizId", protect, getQuizAttempts);
+router.get("/attempts/:quizId", protect, restrictTo("teacher"), getQuizAttempts);
 router.get("/student/attempt/:quizId", protect, getStudentQuizAttempt);
 router.get("/one/:quizId", protect, getQuizById);
 

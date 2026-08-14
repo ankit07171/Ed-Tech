@@ -16,8 +16,6 @@ const generateToken = (user, res) => {
     maxAge: 15 * 24 * 60 * 60 * 1000,
   };
 
-  console.log("🍪 Setting cookie with options:", cookieOptions);
-  
   // Set httpOnly cookie for backend authentication
   res.cookie("jwt", token, cookieOptions);
 
