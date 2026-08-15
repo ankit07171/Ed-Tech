@@ -1,0 +1,40 @@
+# Render Blueprint for this monorepo (2 services: static frontend + backend
+# web service). Deploy via "New +" -> "Blueprint" in the Render dashboard and
+# point it at the repo root — Render only auto-detects a render.yaml sitting
+# at the REPO ROOT, which is why this file previously living inside client/
+# was silently ignored and the SPA rewrite rule below never applied.
+#
+# If you'd rather configure services by hand in the dashboard instead of
+# using this Blueprint, the one setting that matters most for the "blank
+# page / Not Found on refresh" issue is, on the frontend Static Site:
+#   Settings -> Redirects/Rewrites -> Add Rule
+#     Source: /*   Destination: /index.html   Action: Rewrite
+# (the client/public/_redirects file expresses the same rule and Render
+# does read it automatically from the published directory, so if you're
+# still seeing 404s on refresh, double check the Static Site's "Root
+# Directory" is set to `client` and "Publish Directory" to `dist`.)
+services:
+  - type: web
+    name: ed-tech-frontend
+    env: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  - type: web
+    name: ed-tech-backend
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: NODE_ENV
+        value: production

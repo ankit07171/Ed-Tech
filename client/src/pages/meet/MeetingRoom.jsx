@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff,
   Hand, MessageSquare, Users, PhoneOff, Send, X, ShieldAlert,
-  Pin, PinOff, Maximize, Minimize, LayoutGrid, User,
+  Pin, PinOff, Maximize, Minimize, LayoutGrid, User, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import useMeshMeeting, { MESH_SOFT_LIMIT } from "../../hooks/useMeshMeeting.js";
 
 function Tile({
   stream, name, role, micOn, camOn, handRaised, isLocal, muted,
-  sharing, size = "grid", pinned, onTogglePin,
+  sharing, size = "grid", pinned, onTogglePin, connState,
 }) {
   const videoRef = useRef(null);
 
@@ -27,10 +27,23 @@ function Tile({
 
   return (
     <div className={`relative bg-gray-800 rounded-xl overflow-hidden ring-1 ring-white/5 ${size === "grid" ? "aspect-video" : shape}`}>
-      {stream && camOn !== false ? (
-        <video ref={videoRef} autoPlay playsInline muted={muted} className={`w-full h-full ${fit}`} />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-800">
+      {/* The <video> element stays mounted for the tile's whole lifetime —
+          we only ever hide/show it with CSS. Earlier this was conditionally
+          unmounted when the camera was off and remounted when turned back
+          on, which on some browsers (notably reattaching a MediaStream to a
+          brand-new <video> node) left the feed stuck blank after toggling
+          the camera back on. Keeping one persistent element avoids that. */}
+      {stream && (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={muted}
+          className={`w-full h-full ${fit} ${camOn === false ? "hidden" : ""}`}
+        />
+      )}
+      {(!stream || camOn === false) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-800">
           <div className={`${size === "thumb" ? "h-8 w-8 text-sm" : "h-14 w-14 text-lg"} rounded-full bg-purple-600/80 flex items-center justify-center font-semibold text-white`}>
             {(name || "?").charAt(0).toUpperCase()}
           </div>
@@ -46,6 +59,14 @@ function Tile({
       {sharing && size !== "thumb" && (
         <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
           <ScreenShare size={10} /> Presenting
+        </div>
+      )}
+
+      {!isLocal && (connState === "failed" || connState === "disconnected") && size !== "thumb" && (
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
+          <span className="bg-black/70 text-amber-300 text-xs font-medium px-3 py-1 rounded-full animate-pulse">
+            Reconnecting… (network issue)
+          </span>
         </div>
       )}
 
@@ -97,6 +118,7 @@ export default function MeetingRoom({ code, role, name, onExit }) {
   const {
     joining, error, localStream, participants,
     micOn, camOn, sharing, handRaised, chat,
+    camUnavailable, micUnavailable, mediaWarning, retryCamera, retryMic,
     toggleMic, toggleCam, toggleHand, startShare, stopShare,
     sendChat, muteParticipant, removeParticipant, leave, endMeet,
   } = useMeshMeeting({ code, role, name, onEnded: onExit });
@@ -181,7 +203,7 @@ export default function MeetingRoom({ code, role, name, onExit }) {
     }
     const p = participants[id];
     if (!p) return null;
-    return { stream: p.stream, name: p.name, role: p.role, micOn: p.micOn, camOn: p.camOn, handRaised: p.handRaised, sharing: p.sharing };
+    return { stream: p.stream, name: p.name, role: p.role, micOn: p.micOn, camOn: p.camOn, handRaised: p.handRaised, sharing: p.sharing, connState: p.connState };
   };
 
   const spotlightTile = spotlightId ? tileFor(spotlightId) : null;
@@ -228,6 +250,40 @@ export default function MeetingRoom({ code, role, name, onExit }) {
         </div>
       </div>
 
+      {/* Camera/mic unavailable banner — lets people join and stay in the
+          call even if a device was busy/blocked at first, with a one-tap
+          retry once they've freed it up. */}
+      {(camUnavailable || micUnavailable || mediaWarning) && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-amber-900/40 border-b border-amber-700/60 text-amber-200 text-xs flex-wrap">
+          <AlertTriangle size={14} className="shrink-0" />
+          <span className="flex-1 min-w-[200px]">
+            {mediaWarning || (
+              camUnavailable && micUnavailable
+                ? "Camera and microphone aren't available — you joined without them."
+                : camUnavailable
+                ? "Camera isn't available right now — you joined with audio only."
+                : "Microphone isn't available right now — you joined with video only."
+            )}
+          </span>
+          {camUnavailable && (
+            <button
+              onClick={retryCamera}
+              className="flex items-center gap-1 px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-amber-50 font-medium"
+            >
+              <RefreshCw size={12} /> Retry camera
+            </button>
+          )}
+          {micUnavailable && (
+            <button
+              onClick={retryMic}
+              className="flex items-center gap-1 px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-amber-50 font-medium"
+            >
+              <RefreshCw size={12} /> Retry microphone
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex-1 flex overflow-hidden">
         {/* Main viewing area: grid OR spotlight+thumbnail strip */}
         {spotlightTile ? (
@@ -272,7 +328,7 @@ export default function MeetingRoom({ code, role, name, onExit }) {
               <Tile
                 key={id}
                 stream={p.stream} name={p.name} role={p.role} micOn={p.micOn} camOn={p.camOn}
-                handRaised={p.handRaised} sharing={p.sharing}
+                handRaised={p.handRaised} sharing={p.sharing} connState={p.connState}
                 onTogglePin={() => togglePin(id)}
               />
             ))}

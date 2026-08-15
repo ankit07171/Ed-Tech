@@ -28,6 +28,8 @@ export default function useMeshMeeting({ code, role, name, onEnded }) {
   const cameraTrackRef = useRef(null); // kept so we can revert after screen share
   const peers = useRef({}); // userId -> RTCPeerConnection
   const iceQueues = useRef({}); // userId -> RTCIceCandidateInit[]
+  const reconnectTimers = useRef({}); // userId -> timeout id, hard-closes a peer stuck in "failed"
+  const initiatorFlags = useRef({}); // userId -> boolean, who is allowed to (re)send offers for this pair
   const codeRef = useRef(code);
   codeRef.current = code;
 
@@ -35,6 +37,11 @@ export default function useMeshMeeting({ code, role, name, onEnded }) {
     peers.current[userId]?.close();
     delete peers.current[userId];
     delete iceQueues.current[userId];
+    delete initiatorFlags.current[userId];
+    if (reconnectTimers.current[userId]) {
+      clearTimeout(reconnectTimers.current[userId]);
+      delete reconnectTimers.current[userId];
+    }
     setParticipants((prev) => {
       if (!(userId in prev)) return prev;
       const next = { ...prev };
@@ -46,6 +53,7 @@ export default function useMeshMeeting({ code, role, name, onEnded }) {
   const createPeerConnection = useCallback((userId, isInitiator) => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peers.current[userId] = pc;
+    initiatorFlags.current[userId] = isInitiator;
 
     localStreamRef.current?.getTracks().forEach((track) => {
       pc.addTrack(track, localStreamRef.current);
@@ -65,33 +73,216 @@ export default function useMeshMeeting({ code, role, name, onEnded }) {
       }));
     };
 
-    pc.onconnectionstatechange = () => {
-      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
-        // 'disconnected' can be transient on flaky networks, so only hard
-        // close on the terminal states to avoid dropping a recoverable peer.
-        if (pc.connectionState !== "disconnected") closePeer(userId);
+    // Handles BOTH the very first offer and any later renegotiation (like an
+    // ICE restart) through one path. Only the side that originally initiated
+    // this peer connection sends offers here — otherwise, when tracks are
+    // (re)added on both ends at roughly the same time, both sides could try
+    // to offer simultaneously ("glare") and the negotiation can wedge.
+    pc.onnegotiationneeded = async () => {
+      if (!initiatorFlags.current[userId]) return;
+      if (pc.signalingState !== "stable") return;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit("signal", { to: userId, signal: { type: "offer", offer } });
+      } catch {
+        // Ignore — the next negotiationneeded/ICE-restart attempt will retry.
       }
     };
 
-    if (isInitiator) {
-      pc.createOffer()
-        .then((offer) => pc.setLocalDescription(offer).then(() => offer))
-        .then((offer) => {
-          socket.emit("signal", { to: userId, signal: { type: "offer", offer } });
-        })
-        .catch(() => setError("Failed to start a connection with a participant."));
-    }
+    pc.oniceconnectionstatechange = () => {
+      setParticipants((prev) => (
+        prev[userId] ? { ...prev, [userId]: { ...prev[userId], connState: pc.iceConnectionState } } : prev
+      ));
+
+      if (pc.iceConnectionState === "failed") {
+        // Cross-network calls (different NATs/firewalls) can land here even
+        // when the same-network case works fine — it means host/srflx
+        // candidates didn't work and relay (TURN) either wasn't reachable or
+        // wasn't negotiated in time. Try to self-heal with an ICE restart
+        // before giving up, instead of silently leaving a blank tile.
+        try { pc.restartIce(); } catch { /* not supported — will hard-close below */ }
+
+        if (!reconnectTimers.current[userId]) {
+          reconnectTimers.current[userId] = setTimeout(() => {
+            if (peers.current[userId]?.iceConnectionState === "failed") closePeer(userId);
+          }, 15000);
+        }
+      } else if (["connected", "completed"].includes(pc.iceConnectionState)) {
+        if (reconnectTimers.current[userId]) {
+          clearTimeout(reconnectTimers.current[userId]);
+          delete reconnectTimers.current[userId];
+        }
+        // Helps diagnose "works locally, fails across networks" reports —
+        // if this logs "relay" it means TURN was needed and worked; if a
+        // call fails, checking whether it ever reached this point (and with
+        // what candidate type) tells you whether the issue is ICE/TURN
+        // reachability vs. something else entirely.
+        pc.getStats?.().then((stats) => {
+          stats.forEach((report) => {
+            if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
+              const local = stats.get(report.localCandidateId);
+              const remote = stats.get(report.remoteCandidateId);
+              if (local && remote) {
+                // eslint-disable-next-line no-console
+                console.debug(`[meet] connected to ${userId} via ${local.candidateType}->${remote.candidateType}`);
+              }
+            }
+          });
+        }).catch(() => {});
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "closed") closePeer(userId);
+    };
 
     return pc;
   }, [closePeer]);
+
+  const [camUnavailable, setCamUnavailable] = useState(false);
+  const [micUnavailable, setMicUnavailable] = useState(false);
+  const [mediaWarning, setMediaWarning] = useState(""); // non-blocking, unlike `error`
+
+  useEffect(() => {
+    if (!mediaWarning) return;
+    const t = setTimeout(() => setMediaWarning(""), 8000);
+    return () => clearTimeout(t);
+  }, [mediaWarning]);
+
+  // Turns a raw getUserMedia error into something a person can actually act
+  // on — "Could not start video source" on its own just means the browser
+  // couldn't grab the camera, which is almost always because another app or
+  // tab already has it open, not a permissions problem.
+  const describeMediaError = (err) => {
+    switch (err?.name) {
+      case "NotReadableError":
+      case "TrackStartError":
+        return "Your camera or microphone is already in use by another app or browser tab (Zoom, Teams, another meeting tab, a camera app, etc). Close whatever else is using it and try again.";
+      case "NotAllowedError":
+      case "PermissionDeniedError":
+        return "Camera/microphone access is blocked for this site. Check your browser's site settings (the camera icon in the address bar) and allow access, then reload.";
+      case "NotFoundError":
+      case "DevicesNotFoundError":
+        return "No camera or microphone was found on this device.";
+      case "OverconstrainedError":
+        return "Your camera doesn't support the requested video settings.";
+      default:
+        return err?.message || "Unknown error accessing your camera/microphone.";
+    }
+  };
+
+  // Renegotiates with every currently-connected peer regardless of who
+  // originally initiated that connection — used after retryCamera() adds a
+  // video track to a call that started audio-only, since that's a
+  // deliberate one-off action (not a simultaneous auto-negotiation), so the
+  // usual "only the initiator renegotiates" glare guard doesn't apply here.
+  const renegotiateAll = useCallback(() => {
+    Object.entries(peers.current).forEach(([userId, pc]) => {
+      if (pc.signalingState !== "stable") return;
+      pc.createOffer()
+        .then((offer) => pc.setLocalDescription(offer).then(() => offer))
+        .then((offer) => socket.emit("signal", { to: userId, signal: { type: "offer", offer } }))
+        .catch(() => {});
+    });
+  }, []);
+
+  const retryCamera = useCallback(async () => {
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoTrack = camStream.getVideoTracks()[0];
+      cameraTrackRef.current = videoTrack;
+
+      const audioTrack = localStreamRef.current?.getAudioTracks()[0];
+      const merged = new MediaStream([videoTrack, ...(audioTrack ? [audioTrack] : [])]);
+      localStreamRef.current = merged;
+      setLocalStream(merged);
+      setCamOn(true);
+      setCamUnavailable(false);
+
+      Object.values(peers.current).forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) sender.replaceTrack(videoTrack);
+        else pc.addTrack(videoTrack, merged);
+      });
+      renegotiateAll();
+      socket.emit("media-state", { code: codeRef.current, camOn: true });
+    } catch (err) {
+      setMediaWarning(`Still couldn't access the camera: ${describeMediaError(err)}`);
+    }
+  }, [renegotiateAll]);
+
+  const retryMic = useCallback(async () => {
+    try {
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioTrack = micStream.getAudioTracks()[0];
+
+      const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+      const merged = new MediaStream([audioTrack, ...(videoTrack ? [videoTrack] : [])]);
+      localStreamRef.current = merged;
+      setLocalStream(merged);
+      setMicOn(true);
+      setMicUnavailable(false);
+
+      Object.values(peers.current).forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
+        if (sender) sender.replaceTrack(audioTrack);
+        else pc.addTrack(audioTrack, merged);
+      });
+      renegotiateAll();
+      socket.emit("media-state", { code: codeRef.current, micOn: true });
+    } catch (err) {
+      setMediaWarning(`Still couldn't access the microphone: ${describeMediaError(err)}`);
+    }
+  }, [renegotiateAll]);
 
   // ---- Setup: local media + socket wiring ----
   useEffect(() => {
     let cancelled = false;
 
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // Tries video+audio together first (the common case). If that fails
+    // specifically because a device is busy, it retries once after a brief
+    // pause (releasing a camera can take a beat), then falls back to
+    // whichever of camera/mic actually works rather than blocking the user
+    // entirely — better to join audio-only than not be able to join at all.
+    const acquireMedia = async () => {
+      try {
+        return { stream: await navigator.mediaDevices.getUserMedia({ video: true, audio: true }) };
+      } catch (err) {
+        if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+          await wait(700);
+          try {
+            return { stream: await navigator.mediaDevices.getUserMedia({ video: true, audio: true }) };
+          } catch {
+            // fall through to per-device fallback below
+          }
+        }
+
+        const [videoResult, audioResult] = await Promise.allSettled([
+          navigator.mediaDevices.getUserMedia({ video: true }),
+          navigator.mediaDevices.getUserMedia({ audio: true }),
+        ]);
+
+        if (videoResult.status === "fulfilled" || audioResult.status === "fulfilled") {
+          const tracks = [];
+          if (videoResult.status === "fulfilled") tracks.push(...videoResult.value.getVideoTracks());
+          if (audioResult.status === "fulfilled") tracks.push(...audioResult.value.getAudioTracks());
+          return {
+            stream: new MediaStream(tracks),
+            camFailed: videoResult.status === "rejected",
+            micFailed: audioResult.status === "rejected",
+          };
+        }
+
+        throw err; // both totally failed — surface the original combined error
+      }
+    };
+
     const start = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const { stream, camFailed, micFailed } = await acquireMedia();
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -99,10 +290,12 @@ export default function useMeshMeeting({ code, role, name, onEnded }) {
         localStreamRef.current = stream;
         cameraTrackRef.current = stream.getVideoTracks()[0] || null;
         setLocalStream(stream);
+        if (camFailed) { setCamOn(false); setCamUnavailable(true); }
+        if (micFailed) { setMicOn(false); setMicUnavailable(true); }
         socket.emit("join-room", { code, role, name });
         setJoining(false);
       } catch (err) {
-        setError(`Could not access camera/microphone: ${err.message}`);
+        setError(describeMediaError(err));
         setJoining(false);
       }
     };
@@ -316,6 +509,11 @@ export default function useMeshMeeting({ code, role, name, onEnded }) {
     sharing,
     handRaised,
     chat,
+    camUnavailable,
+    micUnavailable,
+    mediaWarning,
+    retryCamera,
+    retryMic,
     toggleMic,
     toggleCam,
     toggleHand,
