@@ -39,6 +39,11 @@ if (process.env.CLIENT_URL) {
   allowedOrigins.push(process.env.CLIENT_URL);
 }
 
+// Also support common Render URL patterns
+if (process.env.NODE_ENV === "production") {
+  allowedOrigins.push("https://ed-tech-1-dz4e.onrender.com");
+}
+
 console.log("🔧 Allowed CORS origins:", allowedOrigins);
 
 app.use(
@@ -123,6 +128,8 @@ const io = new Server(server, {
     credentials: true,
     methods: ["GET", "POST"],
   },
+  allowEIO3: true, // Enable compatibility with older clients
+  transports: ["websocket", "polling"],
 });
 
 setupMeetSocket(io);
