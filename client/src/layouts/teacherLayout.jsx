@@ -2,6 +2,7 @@ import TeacherHeader from "../pages/teacher/teaHeader.jsx";
 import { Outlet } from "react-router-dom";
 import Footer from "../components/footer.jsx"
 import { NotificationProvider } from "../context/NotificationContext.jsx";
+import ChatbotWidget from "../components/ChatbotWidget.jsx";
 
 const TeacherLayout = () => {
   return (
@@ -11,6 +12,7 @@ const TeacherLayout = () => {
   <Outlet />
       </div>
       <Footer/>
+      <ChatbotWidget />
     </NotificationProvider>
   );
 };

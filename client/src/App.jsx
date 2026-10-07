@@ -26,6 +26,7 @@ import AttemptQuiz from "./pages/student/QuizAttempt.jsx";
 import StudentNotesView from "./pages/student/notes.jsx";
 import QuizReview from "./pages/student/QuizReview.jsx";
 import StudentMeet from "./pages/student/JoinMeet.jsx";
+import StudentPlacements from "./pages/student/Placements.jsx";
 
 // Teacher Pages
 import TeacherAttendance from "./pages/teacher/Tattendance.jsx";
@@ -36,6 +37,7 @@ import TeacherUploadNotes from "./pages/teacher/NotesUpload.jsx";
 import TeacherQuizDashboard from "./pages/teacher/Quiz.jsx";
 import AllQuizzes from "./pages/teacher/AllQuizes.jsx";
 import TeacherMeet from "./pages/teacher/CreateMeet.jsx";
+import TeacherPlacements from "./pages/teacher/PlacementManagement.jsx";
 
 // Redirects to dashboard if logged in, otherwise to login
 function SmartRedirect() {
@@ -74,6 +76,7 @@ export default function App() {
           <Route path="quiz" element={<QuizList />} />
           <Route path="quiz/:quizId" element={<AttemptQuiz />} />
           <Route path="quiz/review/:quizId" element={<QuizReview />} />
+          <Route path="placements" element={<StudentPlacements />} />
           <Route path="notes" element={<StudentNotesView />} />
           <Route path="meet" element={<StudentMeet />} />
         </Route>
@@ -94,6 +97,7 @@ export default function App() {
           <Route path="quiz" element={<TeacherQuizDashboard />} />
           <Route path="quiz/all" element={<AllQuizzes />} />
           <Route path="quiz/attempts/:quizId" element={<ViewAttempts />} />
+          <Route path="placements" element={<TeacherPlacements />} />
           <Route path="notes" element={<TeacherUploadNotes />} />
           <Route path="meet" element={<TeacherMeet />} />
         </Route>

@@ -9,6 +9,5 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
-  // Ensure _redirects file is copied to dist
   publicDir: 'public',
 })

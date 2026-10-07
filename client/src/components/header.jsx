@@ -17,14 +17,14 @@ export default function Header() {
         {/* Always-visible login entry point — previously the only way in was
             a button further down the Base page, which the fixed header used
             to cover anyway. */}
-        {showLoginButton && (
+        {/* {showLoginButton && (
           <Link
             to="/login"
             className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition"
           >
             Login / Sign Up
           </Link>
-        )}
+        )} */}
       </div>
     </header>
   );

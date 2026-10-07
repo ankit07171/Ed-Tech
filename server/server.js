@@ -16,6 +16,8 @@ import notificationRoutes from "./routes/notifyRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
 import noteRoutes from "./routes/noteRoute.js";
 import meetRoutes from "./routes/meetRoutes.js";
+import chatbotRoutes from "./routes/chatbotRoutes.js";
+import placementRoutes from "./routes/placementRoutes.js";
 import { setupMeetSocket } from "./socket/meetSocket.js";
 import { setIO } from "./socket/ioInstance.js";
 import { sanitizeInput, apiLimiter, authLimiter } from "./middleware/security.js";
@@ -80,6 +82,8 @@ app.use("/api/attendance", apiLimiter, attendanceRoute);
 app.use("/api/notifications", apiLimiter, notificationRoutes);
 app.use("/api/quizzes", apiLimiter, quizRoutes);
 app.use("/api/meet", apiLimiter, meetRoutes);
+app.use("/api/chatbot", apiLimiter, chatbotRoutes);
+app.use("/api/placements", apiLimiter, placementRoutes);
 
 // ---- Optional single-service SPA fallback ----
 // This project is normally deployed as two Render services (a Static Site

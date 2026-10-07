@@ -1,40 +1,45 @@
-# Render Blueprint for this monorepo (2 services: static frontend + backend
-# web service). Deploy via "New +" -> "Blueprint" in the Render dashboard and
-# point it at the repo root — Render only auto-detects a render.yaml sitting
-# at the REPO ROOT, which is why this file previously living inside client/
-# was silently ignored and the SPA rewrite rule below never applied.
-#
-# If you'd rather configure services by hand in the dashboard instead of
-# using this Blueprint, the one setting that matters most for the "blank
-# page / Not Found on refresh" issue is, on the frontend Static Site:
-#   Settings -> Redirects/Rewrites -> Add Rule
-#     Source: /*   Destination: /index.html   Action: Rewrite
-# (the client/public/_redirects file expresses the same rule and Render
-# does read it automatically from the published directory, so if you're
-# still seeing 404s on refresh, double check the Static Site's "Root
-# Directory" is set to `client` and "Publish Directory" to `dist`.)
 services:
+  # Backend API Service
+  - type: web
+    name: ed-tech-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 7171
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+
+  # Frontend Static Site
   - type: web
     name: ed-tech-frontend
     env: static
-    rootDir: client
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    region: oregon
+    plan: free
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/dist
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-
-  - type: web
-    name: ed-tech-backend
-    env: node
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
-    envVars:
-      - key: JWT_SECRET
-        sync: false
-      - key: MONGO_URI
-        sync: false
-      - key: NODE_ENV
-        value: production

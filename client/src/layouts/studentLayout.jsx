@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 
 import Footer from "../components/footer.jsx"
 import { NotificationProvider } from "../context/NotificationContext.jsx";
+import ChatbotWidget from "../components/ChatbotWidget.jsx";
 
 const StudentLayout = () => {
   return (
@@ -12,6 +13,7 @@ const StudentLayout = () => {
    <Outlet />
       </div>
       <Footer/>
+      <ChatbotWidget />
     </NotificationProvider>
   );
 };

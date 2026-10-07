@@ -33,6 +33,7 @@ export default function Header() {
     { name: "Attendance", path: "/teacher/attendance" },
     { name: "Notification", path: "/teacher/notification" },
     { name: "Quiz", path: "/teacher/quiz" },
+    { name: "Placements", path: "/teacher/placements" },
     { name: "Meet", path: "/teacher/meet" },
     { name: "Notes", path: "/teacher/notes" },
   ];
